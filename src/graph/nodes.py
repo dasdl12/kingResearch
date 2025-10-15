@@ -521,7 +521,10 @@ async def researcher_node(
     logger.info("Researcher node is researching.")
     configurable = Configuration.from_runnable_config(config)
     tools = [
-        get_web_search_tool(configurable.max_search_results),
+        get_web_search_tool(
+            configurable.max_search_results,
+            configurable.enable_image_search
+        ),
         crawl_tool,
         github_analyzer_tool,
     ]

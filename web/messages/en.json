@@ -41,7 +41,9 @@
       "maxStepsOfPlan": "Max steps of a research plan",
       "maxStepsDescription": "By default, each research plan has 3 steps.",
       "maxSearchResults": "Max search results",
-      "maxSearchResultsDescription": "By default, each search step has 3 results."
+      "maxSearchResultsDescription": "By default, each search step has 5 results.",
+      "enableImageSearch": "Include images in search results",
+      "enableImageSearchDescription": "When enabled, search results will include relevant images."
     },
     "mcp": {
       "title": "MCP Servers",
@@ -129,6 +131,7 @@
       "errorExecutingCode": "Error when executing the above code",
       "executionOutput": "Execution output",
       "retrievingDocuments": "Retrieving documents from RAG",
+      "analyzingGitHub": "Analyzing GitHub repositories",
       "running": "Running",
       "generatingPodcast": "Generating podcast...",
       "nowPlayingPodcast": "Now playing podcast...",

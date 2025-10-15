@@ -41,7 +41,9 @@
       "maxStepsOfPlan": "研究计划的最大步骤数",
       "maxStepsDescription": "默认情况下，每个研究计划有 3 个步骤。",
       "maxSearchResults": "最大搜索结果数",
-      "maxSearchResultsDescription": "默认情况下，每个搜索步骤有 3 个结果。"
+      "maxSearchResultsDescription": "默认情况下，每个搜索步骤有 5 个结果。",
+      "enableImageSearch": "搜索结果包含图片",
+      "enableImageSearchDescription": "启用后，搜索结果将包含相关图片。"
     },
     "mcp": {
       "title": "MCP 服务器",
@@ -129,6 +131,7 @@
       "errorExecutingCode": "执行上述代码时出错",
       "executionOutput": "执行输出",
       "retrievingDocuments": "从 RAG 检索文档",
+      "analyzingGitHub": "分析 GitHub 仓库",
       "running": "运行",
       "generatingPodcast": "生成播客中...",
       "nowPlayingPodcast": "正在播放播客...",

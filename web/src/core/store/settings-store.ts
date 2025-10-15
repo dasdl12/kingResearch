@@ -12,9 +12,10 @@ const DEFAULT_SETTINGS: SettingsState = {
     autoAcceptedPlan: false,
     enableDeepThinking: false,
     enableBackgroundInvestigation: false,
+    enableImageSearch: true,
     maxPlanIterations: 1,
     maxStepNum: 3,
-    maxSearchResults: 3,
+    maxSearchResults: 5,
     reportStyle: "academic",
   },
   mcp: {
@@ -27,6 +28,7 @@ export type SettingsState = {
     autoAcceptedPlan: boolean;
     enableDeepThinking: boolean;
     enableBackgroundInvestigation: boolean;
+    enableImageSearch: boolean;
     maxPlanIterations: number;
     maxStepNum: number;
     maxSearchResults: number;
@@ -156,6 +158,16 @@ export function setEnableBackgroundInvestigation(value: boolean) {
     general: {
       ...state.general,
       enableBackgroundInvestigation: value,
+    },
+  }));
+  saveSettings();
+}
+
+export function setEnableImageSearch(value: boolean) {
+  useSettingsStore.setState((state) => ({
+    general: {
+      ...state.general,
+      enableImageSearch: value,
     },
   }));
   saveSettings();

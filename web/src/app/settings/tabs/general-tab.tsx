@@ -38,6 +38,7 @@ const generalFormSchema = z.object({
   // Others
   enableBackgroundInvestigation: z.boolean(),
   enableDeepThinking: z.boolean(),
+  enableImageSearch: z.boolean(),
   reportStyle: z.enum(["academic", "popular_science", "news", "social_media","strategic_investment", "tech_selection"]),
 });
 
@@ -169,6 +170,29 @@ export const GeneralTab: Tab = ({
                     {t("maxSearchResultsDescription")}
                   </FormDescription>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="enableImageSearch"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="enableImageSearch"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                      <Label className="text-sm" htmlFor="enableImageSearch">
+                        {t("enableImageSearch")}
+                      </Label>
+                    </div>
+                  </FormControl>
+                  <FormDescription>
+                    {t("enableImageSearchDescription")}
+                  </FormDescription>
                 </FormItem>
               )}
             />

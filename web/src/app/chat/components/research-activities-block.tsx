@@ -102,6 +102,8 @@ function ActivityListItem({ messageId }: { messageId: string }) {
           return <PythonToolCall key={toolCall.id} toolCall={toolCall} />;
         } else if (toolCall.name === "local_search_tool") {
           return <RetrieverToolCall key={toolCall.id} toolCall={toolCall} />;
+        } else if (toolCall.name === "github_analyzer_tool") {
+          return <GitHubAnalyzerToolCall key={toolCall.id} toolCall={toolCall} />;
         } else {
           return <MCPToolCall key={toolCall.id} toolCall={toolCall} />;
         }
@@ -425,6 +427,147 @@ function PythonToolCallResult({ result }: { result: string }) {
         </SyntaxHighlighter>
       </div>
     </>
+  );
+}
+
+function GitHubAnalyzerToolCall({ toolCall }: { toolCall: ToolCallRuntime }) {
+  const t = useTranslations("chat.research");
+  const analyzing = useMemo(() => toolCall.result === undefined, [toolCall.result]);
+
+  // Parse repository URLs from args
+  const repoUrls = useMemo(() => {
+    const urls = (toolCall.args as { repo_urls: string }).repo_urls;
+    return urls?.split(',').map(url => url.trim()) || [];
+  }, [toolCall.args]);
+
+  // Parse repository data from the markdown result
+  const repoData = useMemo(() => {
+    if (!toolCall.result) return null;
+
+    // Try to extract Overview Comparison table data
+    const tableMatch = toolCall.result.match(/\| Repository \| Stars.+?\n\|[-|\s]+\|.+?\n((?:\|.+?\n)+)/);
+    if (!tableMatch) return null;
+
+    const rows = tableMatch[1].trim().split('\n');
+    return rows.map(row => {
+      const cells = row.split('|').map(c => c.trim()).filter(Boolean);
+      if (cells.length >= 4) {
+        return {
+          name: cells[0],
+          stars: cells[1],
+          language: cells[2],
+          healthScore: cells[3],
+        };
+      }
+      return null;
+    }).filter(Boolean);
+  }, [toolCall.result]);
+
+  return (
+    <section className="mt-4 pl-4">
+      <div className="font-medium italic">
+        <RainbowText
+          className="flex items-center"
+          animated={analyzing}
+        >
+          <PencilRuler size={16} className={"mr-2"} />
+          <span>{t("analyzingGitHub")}</span>
+        </RainbowText>
+      </div>
+      <div className="pr-4">
+        {repoData && repoData.length > 0 ? (
+          <ul className="mt-2 flex flex-wrap gap-4">
+            {analyzing &&
+              [...Array(2)].map((_, i) => (
+                <li
+                  key={`repo-${i}`}
+                  className="flex h-40 w-64 gap-2 rounded-md text-sm"
+                >
+                  <Skeleton
+                    className="to-accent h-full w-full rounded-md bg-gradient-to-tl from-slate-400"
+                    style={{ animationDelay: `${i * 0.2}s` }}
+                  />
+                </li>
+              ))}
+            {repoData.map((repo, i) => (
+              <motion.li
+                key={`repo-${i}`}
+                className="text-muted-foreground bg-accent flex w-64 flex-col gap-2 rounded-md p-3 text-sm"
+                initial={{ opacity: 0, y: 10, scale: 0.66 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{
+                  duration: 0.2,
+                  delay: i * 0.1,
+                  ease: "easeOut",
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <FavIcon
+                    url={`https://github.com/${repo.name}`}
+                    title={repo.name}
+                  />
+                  <a
+                    href={`https://github.com/${repo.name}`}
+                    target="_blank"
+                    className="font-semibold hover:underline"
+                  >
+                    {repo.name}
+                  </a>
+                </div>
+                <div className="mt-2 space-y-1 text-xs">
+                  <div>⭐ {repo.stars} stars</div>
+                  <div>💻 {repo.language}</div>
+                  <div className="font-semibold">
+                    🏆 Health: {repo.healthScore}
+                  </div>
+                </div>
+              </motion.li>
+            ))}
+          </ul>
+        ) : (
+          // Fallback: show repository URLs as simple cards
+          <ul className="mt-2 flex flex-wrap gap-4">
+            {analyzing &&
+              [...Array(2)].map((_, i) => (
+                <li
+                  key={`repo-${i}`}
+                  className="flex h-24 w-48 gap-2 rounded-md text-sm"
+                >
+                  <Skeleton
+                    className="to-accent h-full w-full rounded-md bg-gradient-to-tl from-slate-400"
+                    style={{ animationDelay: `${i * 0.2}s` }}
+                  />
+                </li>
+              ))}
+            {!analyzing && repoUrls.map((url, i) => {
+              const repoName = url.replace('https://github.com/', '').replace('http://github.com/', '');
+              return (
+                <motion.li
+                  key={`repo-${i}`}
+                  className="text-muted-foreground bg-accent flex w-48 items-center gap-2 rounded-md p-3 text-sm"
+                  initial={{ opacity: 0, y: 10, scale: 0.66 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{
+                    duration: 0.2,
+                    delay: i * 0.1,
+                    ease: "easeOut",
+                  }}
+                >
+                  <FavIcon url={`https://github.com/${repoName}`} title={repoName} />
+                  <a
+                    href={`https://github.com/${repoName}`}
+                    target="_blank"
+                    className="flex-1 overflow-hidden text-ellipsis font-medium hover:underline"
+                  >
+                    {repoName}
+                  </a>
+                </motion.li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </section>
   );
 }
 
