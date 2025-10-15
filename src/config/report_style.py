@@ -1,0 +1,10 @@
+import enum
+
+
+class ReportStyle(enum.Enum):
+    ACADEMIC = "academic"
+    POPULAR_SCIENCE = "popular_science"
+    NEWS = "news"
+    SOCIAL_MEDIA = "social_media"
+    STRATEGIC_INVESTMENT = "strategic_investment"
+    TECH_SELECTION = "tech_selection"
