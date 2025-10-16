@@ -222,3 +222,250 @@ class TestContextManager:
             truncated_message.content
         )
         assert truncated_tokens <= max_tokens
+
+    def test_compress_messages_preserves_aimessage_toolmessage_pairs(self):
+        """Test that compression preserves AIMessage-ToolMessage pairs"""
+        # Create a context manager with limited token capacity
+        limited_cm = ContextManager(
+            token_limit=300, preserve_prefix_message_count=2, model_name=TEST_MODEL
+        )
+
+        # Create an AIMessage with tool_calls
+        ai_message_with_tools = AIMessage(
+            content="I'll search for that information.",
+            tool_calls=[
+                {"name": "web_search", "args": {"query": "test query 1"}, "id": "call_1", "type": "tool_call"},
+                {"name": "web_search", "args": {"query": "test query 2"}, "id": "call_2", "type": "tool_call"},
+                {"name": "web_search", "args": {"query": "test query 3"}, "id": "call_3", "type": "tool_call"},
+            ]
+        )
+
+        messages = [
+            HumanMessage(content="Hello"),
+            AIMessage(content="Hi there!"),
+            ai_message_with_tools,
+            ToolMessage(content="Result 1 " * 100, tool_call_id="call_1"),  # Large result
+            ToolMessage(content="Result 2 " * 100, tool_call_id="call_2"),  # Large result
+            ToolMessage(content="Result 3 " * 100, tool_call_id="call_3"),  # Large result
+            HumanMessage(content="Final message"),
+        ]
+
+        compressed = limited_cm.compress_messages({"messages": messages})
+        compressed_messages = compressed["messages"]
+
+        # Verify: If AIMessage with tool_calls is present, ALL its ToolMessages must be present
+        ai_messages_with_tools = [
+            msg for msg in compressed_messages 
+            if isinstance(msg, AIMessage) and hasattr(msg, 'tool_calls') and msg.tool_calls
+        ]
+
+        for ai_msg in ai_messages_with_tools:
+            # Extract tool call IDs
+            tool_call_ids = set()
+            for tc in ai_msg.tool_calls:
+                if isinstance(tc, dict) and 'id' in tc:
+                    tool_call_ids.add(tc['id'])
+                elif hasattr(tc, 'id'):
+                    tool_call_ids.add(tc.id)
+
+            # Find all ToolMessages in compressed messages
+            tool_messages = [
+                msg for msg in compressed_messages 
+                if isinstance(msg, ToolMessage)
+            ]
+
+            # Count how many of our tool_calls have corresponding ToolMessages
+            found_tool_call_ids = set()
+            for tool_msg in tool_messages:
+                if hasattr(tool_msg, 'tool_call_id') and tool_msg.tool_call_id in tool_call_ids:
+                    found_tool_call_ids.add(tool_msg.tool_call_id)
+
+            # Either all tool_calls should have their ToolMessages, or the AIMessage should be excluded
+            assert found_tool_call_ids == tool_call_ids, (
+                f"AIMessage with tool_calls present but not all ToolMessages found. "
+                f"Expected: {tool_call_ids}, Found: {found_tool_call_ids}"
+            )
+
+        # Verify total tokens are within limit (with small overhead allowance)
+        assert limited_cm.count_tokens(compressed_messages) <= 310
+
+    def test_compress_messages_excludes_incomplete_tool_pairs(self):
+        """Test that compression excludes AIMessage-ToolMessage groups that don't fit"""
+        # Create a very small token limit
+        limited_cm = ContextManager(
+            token_limit=50, preserve_prefix_message_count=1, model_name=TEST_MODEL
+        )
+
+        # Create messages where the tool group is too large to fit
+        ai_message_with_tools = AIMessage(
+            content="Searching...",
+            tool_calls=[
+                {"name": "web_search", "args": {"query": "test"}, "id": "call_1", "type": "tool_call"},
+            ]
+        )
+
+        messages = [
+            HumanMessage(content="Hello"),
+            ai_message_with_tools,
+            ToolMessage(
+                content="This is a very long result that will exceed token limits when combined with the AIMessage " * 20,
+                tool_call_id="call_1"
+            ),
+            HumanMessage(content="Final message"),
+        ]
+
+        compressed = limited_cm.compress_messages({"messages": messages})
+        compressed_messages = compressed["messages"]
+
+        # Verify: AIMessage with tool_calls should NOT be present if its ToolMessages can't fit
+        ai_messages_with_tools = [
+            msg for msg in compressed_messages 
+            if isinstance(msg, AIMessage) and hasattr(msg, 'tool_calls') and msg.tool_calls
+        ]
+
+        # For any AIMessage with tool_calls that IS present, all ToolMessages must be present
+        for ai_msg in ai_messages_with_tools:
+            tool_call_ids = {tc.get('id') if isinstance(tc, dict) else tc.id for tc in ai_msg.tool_calls}
+            tool_messages = [
+                msg for msg in compressed_messages 
+                if isinstance(msg, ToolMessage) and hasattr(msg, 'tool_call_id')
+            ]
+            found_ids = {msg.tool_call_id for msg in tool_messages if msg.tool_call_id in tool_call_ids}
+            assert found_ids == tool_call_ids, "Incomplete tool call pairs found"
+
+        # Verify we're within token limit
+        assert limited_cm.count_tokens(compressed_messages) <= 60  # Allow small overhead
+
+    def test_compress_messages_preserves_aimessage_toolmessage_across_prefix_suffix(self):
+        """Test that compression preserves AIMessage-ToolMessage pairs when they span prefix/suffix boundary"""
+        # Create a context manager that preserves 3 messages in prefix
+        limited_cm = ContextManager(
+            token_limit=300, preserve_prefix_message_count=3, model_name=TEST_MODEL
+        )
+
+        # Create an AIMessage with tool_calls that will be in the prefix
+        ai_message_with_tools = AIMessage(
+            content="Searching...",
+            tool_calls=[
+                {"name": "web_search", "args": {"query": "test 1"}, "id": "call_1", "type": "tool_call"},
+                {"name": "web_search", "args": {"query": "test 2"}, "id": "call_2", "type": "tool_call"},
+                {"name": "web_search", "args": {"query": "test 3"}, "id": "call_3", "type": "tool_call"},
+            ]
+        )
+
+        messages = [
+            HumanMessage(content="Hello"),
+            HumanMessage(content="More context"),
+            ai_message_with_tools,  # This will be in prefix (position 3)
+            # These ToolMessages will be after the prefix
+            ToolMessage(content="Result 1 " * 50, tool_call_id="call_1"),
+            ToolMessage(content="Result 2 " * 50, tool_call_id="call_2"),
+            ToolMessage(content="Result 3 " * 50, tool_call_id="call_3"),
+            HumanMessage(content="What about this?"),
+        ]
+
+        compressed = limited_cm.compress_messages({"messages": messages})
+        compressed_messages = compressed["messages"]
+
+        # Verify: If AIMessage with tool_calls is present, ALL its ToolMessages must be present
+        ai_messages_with_tools = [
+            msg for msg in compressed_messages 
+            if isinstance(msg, AIMessage) and hasattr(msg, 'tool_calls') and msg.tool_calls
+        ]
+
+        for ai_msg in ai_messages_with_tools:
+            # Extract tool call IDs
+            tool_call_ids = set()
+            for tc in ai_msg.tool_calls:
+                if isinstance(tc, dict) and 'id' in tc:
+                    tool_call_ids.add(tc['id'])
+                elif hasattr(tc, 'id'):
+                    tool_call_ids.add(tc.id)
+
+            # Find all ToolMessages in compressed messages
+            tool_messages = [
+                msg for msg in compressed_messages 
+                if isinstance(msg, ToolMessage)
+            ]
+
+            # Count how many of our tool_calls have corresponding ToolMessages
+            found_tool_call_ids = set()
+            for tool_msg in tool_messages:
+                if hasattr(tool_msg, 'tool_call_id') and tool_msg.tool_call_id in tool_call_ids:
+                    found_tool_call_ids.add(tool_msg.tool_call_id)
+
+            # All tool_calls must have their ToolMessages
+            assert found_tool_call_ids == tool_call_ids, (
+                f"AIMessage with tool_calls in prefix but not all ToolMessages found. "
+                f"Expected: {tool_call_ids}, Found: {found_tool_call_ids}"
+            )
+
+        # Verify total tokens are within limit (with small overhead allowance)
+        assert limited_cm.count_tokens(compressed_messages) <= 310
+
+    def test_compress_messages_removes_orphaned_toolmessages_when_aimessage_excluded(self):
+        """Test that ToolMessages are removed when their AIMessage is excluded due to space constraints"""
+        # Create a very small token limit
+        limited_cm = ContextManager(
+            token_limit=100, preserve_prefix_message_count=3, model_name=TEST_MODEL
+        )
+
+        # Create an AIMessage with tool_calls that will be in prefix but can't fit with all ToolMessages
+        ai_message_with_tools = AIMessage(
+            content="Searching...",
+            tool_calls=[
+                {"name": "web_search", "args": {"query": "test"}, "id": "call_1", "type": "tool_call"},
+                {"name": "web_search", "args": {"query": "test"}, "id": "call_2", "type": "tool_call"},
+            ]
+        )
+
+        messages = [
+            HumanMessage(content="Hi"),
+            HumanMessage(content="Q"),
+            ai_message_with_tools,  # This will be in prefix position 3
+            # These large ToolMessages won't fit with the AIMessage
+            ToolMessage(content="Large result " * 100, tool_call_id="call_1"),
+            ToolMessage(content="Large result " * 100, tool_call_id="call_2"),
+            HumanMessage(content="Final"),
+        ]
+
+        compressed = limited_cm.compress_messages({"messages": messages})
+        compressed_messages = compressed["messages"]
+
+        # The AIMessage should be removed because ToolMessages don't fit
+        ai_messages_with_tools = [
+            msg for msg in compressed_messages 
+            if isinstance(msg, AIMessage) and hasattr(msg, 'tool_calls') and msg.tool_calls
+        ]
+        
+        # No AIMessage with tool_calls should be present (it was removed)
+        # OR if present, all its ToolMessages must be present
+        for ai_msg in ai_messages_with_tools:
+            tool_call_ids = {tc.get('id') if isinstance(tc, dict) else tc.id for tc in ai_msg.tool_calls}
+            tool_messages = [
+                msg for msg in compressed_messages 
+                if isinstance(msg, ToolMessage) and hasattr(msg, 'tool_call_id')
+            ]
+            found_ids = {msg.tool_call_id for msg in tool_messages if msg.tool_call_id in tool_call_ids}
+            assert found_ids == tool_call_ids, "Incomplete tool call pairs found"
+
+        # More importantly: verify NO orphaned ToolMessages exist
+        # (ToolMessages whose AIMessage was removed)
+        all_ai_tool_call_ids = set()
+        for msg in compressed_messages:
+            if isinstance(msg, AIMessage) and hasattr(msg, 'tool_calls') and msg.tool_calls:
+                for tc in msg.tool_calls:
+                    tc_id = tc.get('id') if isinstance(tc, dict) else tc.id
+                    if tc_id:
+                        all_ai_tool_call_ids.add(tc_id)
+        
+        # Check all ToolMessages have their AIMessage present
+        for msg in compressed_messages:
+            if isinstance(msg, ToolMessage) and hasattr(msg, 'tool_call_id'):
+                assert msg.tool_call_id in all_ai_tool_call_ids, (
+                    f"Orphaned ToolMessage found with call_id {msg.tool_call_id} - "
+                    f"its AIMessage was removed but the ToolMessage was not"
+                )
+
+        # Verify we're within token limit
+        assert limited_cm.count_tokens(compressed_messages) <= 110

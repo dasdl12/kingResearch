@@ -134,7 +134,7 @@ class TavilySearchWithImages(TavilySearchResults):  # type: ignore[override, ove
         logger.debug(
             "sync: %s", json.dumps(cleaned_results, indent=2, ensure_ascii=False)
         )
-        return cleaned_results, raw_results
+        return cleaned_results
 
     async def _arun(
         self,

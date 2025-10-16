@@ -409,9 +409,11 @@ async def _execute_agent_step(
         recursion_limit = default_recursion_limit
 
     logger.info(f"Agent input: {agent_input}")
+    logger.info(f"[AGENT DEBUG] Before agent.ainvoke - input message count: {len(agent_input.get('messages', []))}")
     result = await agent.ainvoke(
         input=agent_input, config={"recursion_limit": recursion_limit}
     )
+    logger.info(f"[AGENT DEBUG] After agent.ainvoke - result message count: {len(result.get('messages', []))}")
 
     # Process the result
     response_content = result["messages"][-1].content
@@ -490,26 +492,60 @@ async def _setup_and_execute_agent_step(
 
         llm_token_limit = get_llm_token_limit_by_type(AGENT_LLM_MAP[agent_type])
         llm_model_name = get_llm_model_name_by_type(AGENT_LLM_MAP[agent_type])
-        pre_model_hook = partial(
-            ContextManager(
-                llm_token_limit, 3, llm_type=agent_type, model_name=llm_model_name
-            ).compress_messages
+        
+        # 创建包装函数来追踪 pre_model_hook 的调用
+        context_manager = ContextManager(
+            llm_token_limit, 3, llm_type=agent_type, model_name=llm_model_name
         )
+        
+        def pre_model_hook_wrapper(state: dict) -> dict:
+            logger.info(f"[PRE_MODEL_HOOK] Called with {len(state.get('messages', []))} messages")
+            # Avoid mutating original state to prevent tool_call/context mismatch
+            state_copy = {"messages": list(state.get("messages", []))}
+            compressed_state = context_manager.compress_messages(state_copy)
+            compressed_messages = compressed_state.get('messages', [])
+            logger.info(f"[PRE_MODEL_HOOK] Compressed to {len(compressed_messages)} messages")
+            
+            # 关键修复：使用 llm_input_messages 只提供给 LLM，不更新 state
+            # 这样避免了状态污染，LLM 只会看到压缩后的消息
+            result = {
+                "llm_input_messages": compressed_messages
+            }
+            logger.info(f"[PRE_MODEL_HOOK] Returning llm_input_messages with {len(compressed_messages)} compressed messages")
+            return result
+        
         agent = create_agent(
-            agent_type, agent_type, loaded_tools, agent_type, pre_model_hook
+            agent_type, agent_type, default_tools, agent_type, pre_model_hook_wrapper
         )
         return await _execute_agent_step(state, agent, agent_type)
     else:
         # Use default tools if no MCP servers are configured
         llm_token_limit = get_llm_token_limit_by_type(AGENT_LLM_MAP[agent_type])
         llm_model_name = get_llm_model_name_by_type(AGENT_LLM_MAP[agent_type])
-        pre_model_hook = partial(
-            ContextManager(
-                llm_token_limit, 3, llm_type=agent_type, model_name=llm_model_name
-            ).compress_messages
+        
+        # 创建包装函数来追踪 pre_model_hook 的调用
+        context_manager = ContextManager(
+            llm_token_limit, 3, llm_type=agent_type, model_name=llm_model_name
         )
+        
+        def pre_model_hook_wrapper_default(state: dict) -> dict:
+            logger.info(f"[PRE_MODEL_HOOK] Called with {len(state.get('messages', []))} messages")
+            # Avoid mutating original state to prevent tool_call/context mismatch
+            state_copy = {"messages": list(state.get("messages", []))}
+            compressed_state = context_manager.compress_messages(state_copy)
+            compressed_messages = compressed_state.get('messages', [])
+            logger.info(f"[PRE_MODEL_HOOK] Compressed to {len(compressed_messages)} messages")
+            
+            # 关键修复：使用 llm_input_messages 只提供给 LLM，不更新 state
+            # 这样避免了状态污染，LLM 只会看到压缩后的消息
+            result = {
+                "llm_input_messages": compressed_messages
+            }
+            logger.info(f"[PRE_MODEL_HOOK] Returning llm_input_messages with {len(compressed_messages)} compressed messages")
+            return result
+        
         agent = create_agent(
-            agent_type, agent_type, default_tools, agent_type, pre_model_hook
+            agent_type, agent_type, default_tools, agent_type, pre_model_hook_wrapper_default
         )
         return await _execute_agent_step(state, agent, agent_type)
 
