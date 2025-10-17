@@ -47,6 +47,23 @@ from src.server.rag_request import (
     RAGResourceRequest,
     RAGResourcesResponse,
 )
+from src.server.conversation_request import (
+    CreateConversationRequest,
+    UpdateConversationRequest,
+    ConversationResponse,
+    ConversationListResponse,
+    MessageResponse,
+    MessageListResponse,
+    GenerateTitleRequest,
+    GenerateTitleResponse,
+    ExportConversationResponse,
+)
+from src.database.models import (
+    ConversationRepository,
+    MessageRepository,
+    Message as DBMessage,
+    init_database,
+)
 from src.tools import VolcengineTTS
 from src.utils.json_utils import sanitize_args
 
@@ -72,15 +89,49 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,  # Restrict to specific origins
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],  # Use the configured list of methods
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Add PUT and DELETE
     allow_headers=["*"],  # Now allow all headers, but can be restricted further
 )
 
 # Load examples into Milvus if configured
 load_examples()
 
+# Initialize database tables
+init_database()
+
 in_memory_store = InMemoryStore()
 graph = build_graph_with_memory()
+
+
+async def _auto_generate_title(conversation_id: str, first_message: str):
+    """Auto-generate title for conversation based on first message."""
+    try:
+        from src.llms.llm import get_llm_by_type
+        
+        llm = get_llm_by_type("basic")
+        prompt = f"""Based on this user question, generate a short, descriptive title (max 6 words):
+
+Question: {first_message}
+
+Generate ONLY the title, no quotes or extra text."""
+
+        response = llm.invoke(prompt)
+        title = response.content.strip().strip('"').strip("'")
+        
+        # Fallback to first 50 chars if generation fails
+        if not title or len(title) > 100:
+            title = first_message[:50] + ("..." if len(first_message) > 50 else "")
+        
+        # Update conversation title
+        conv_repo = ConversationRepository()
+        try:
+            conv_repo.update_conversation(conversation_id, title=title)
+            logger.info(f"Auto-generated title for conversation {conversation_id}: {title}")
+        finally:
+            conv_repo.close()
+            
+    except Exception as e:
+        logger.error(f"Failed to auto-generate title: {e}")
 
 
 @app.post("/api/chat/stream")
@@ -96,13 +147,62 @@ async def chat_stream(request: ChatRequest):
         )
 
     thread_id = request.thread_id
+    conversation_id = thread_id  # Use thread_id as conversation_id
+    
+    # Check if we need to create a new conversation
+    need_create = False
     if thread_id == "__default__":
-        thread_id = str(uuid4())
+        need_create = True
+    else:
+        # Verify the conversation exists (防止使用已删除的ID)
+        conv_repo = ConversationRepository()
+        try:
+            existing_conv = conv_repo.get_conversation(thread_id)
+            if not existing_conv:
+                logger.warning(f"⚠️ Thread ID {thread_id} references non-existent conversation, creating new one")
+                need_create = True
+        finally:
+            conv_repo.close()
+    
+    if need_create:
+        # Create a new conversation
+        conv_repo = ConversationRepository()
+        try:
+            conversation = conv_repo.create_conversation(title="New Conversation")
+            if conversation:
+                conversation_id = conversation.id
+                thread_id = conversation.id
+                logger.info(f"✅ Created new conversation: {conversation_id}")
+            else:
+                thread_id = str(uuid4())
+                conversation_id = thread_id
+        finally:
+            conv_repo.close()
+    
+    # Save user message to database
+    if request.messages and len(request.messages) > 0:
+        msg_repo = MessageRepository()
+        try:
+            user_message = request.messages[-1]  # Get last user message
+            if isinstance(user_message, dict) and user_message.get("role") == "user":
+                db_message = DBMessage(
+                    conversation_id=conversation_id,
+                    role="user",
+                    content=user_message.get("content", ""),
+                    metadata={"resources": [r.dict() for r in request.resources] if request.resources else None}
+                )
+                msg_repo.add_message(db_message)
+                logger.info(f"💬 User message saved to conversation {conversation_id}")
+                
+                # 不再使用auto_generate_title，标题由planner生成
+        finally:
+            msg_repo.close()
 
     return StreamingResponse(
         _astream_workflow_generator(
             request.model_dump()["messages"],
             thread_id,
+            conversation_id,
             request.resources,
             request.max_plan_iterations,
             request.max_step_num,
@@ -209,12 +309,51 @@ def _process_initial_messages(message, thread_id):
     )
 
 
-async def _process_message_chunk(message_chunk, message_metadata, thread_id, agent):
+async def _process_message_chunk(message_chunk, message_metadata, thread_id, agent, conversation_id=None):
     """Process a single message chunk and yield appropriate events."""
     agent_name = _get_agent_name(agent, message_metadata)
     event_stream_message = _create_event_stream_message(
         message_chunk, message_metadata, thread_id, agent_name
     )
+
+    # 检查是否包含conversation_title更新（从planner的additional_kwargs）
+    if hasattr(message_chunk, 'additional_kwargs') and message_chunk.additional_kwargs.get("conversation_title"):
+        title = message_chunk.additional_kwargs["conversation_title"]
+        logger.info(f"🟡 Sending conversation_title_updated event: '{title}'")
+        yield _make_event("conversation_title_updated", {
+            "thread_id": thread_id,
+            "conversation_id": conversation_id or thread_id,
+            "id": "title_update_from_planner",
+            "role": "system",
+            "title": title
+        })
+    
+    # 方案C：保存关键节点的AI消息到messages表
+    # 保存planner和reporter的完整消息（不保存中间的tool calls）
+    if isinstance(message_chunk, AIMessageChunk):
+        finish_reason = message_chunk.response_metadata.get("finish_reason") if hasattr(message_chunk, 'response_metadata') else None
+        if finish_reason == "stop" and message_chunk.content and conversation_id:
+            # 只保存来自planner、reporter、coordinator的完整消息
+            if agent_name in ["planner", "reporter", "coordinator"]:
+                msg_repo = MessageRepository()
+                try:
+                    # 检查是否已存在（避免重复保存）
+                    existing_messages = msg_repo.get_messages(conversation_id, limit=1000)
+                    if not any(msg.id == str(message_chunk.id) for msg in existing_messages):
+                        db_message = DBMessage(
+                            id=str(message_chunk.id),
+                            conversation_id=conversation_id,
+                            role="assistant",
+                            content=message_chunk.content,
+                            agent=agent_name,
+                            metadata=message_chunk.additional_kwargs if hasattr(message_chunk, 'additional_kwargs') else None
+                        )
+                        msg_repo.add_message(db_message)
+                        logger.info(f"💾 Saved {agent_name} message to conversation {conversation_id}")
+                except Exception as e:
+                    logger.error(f"Failed to save AI message: {e}")
+                finally:
+                    msg_repo.close()
 
     if isinstance(message_chunk, ToolMessage):
         # Tool Message - Return the result of the tool call
@@ -241,7 +380,7 @@ async def _process_message_chunk(message_chunk, message_metadata, thread_id, age
 
 
 async def _stream_graph_events(
-    graph_instance, workflow_input, workflow_config, thread_id
+    graph_instance, workflow_input, workflow_config, thread_id, conversation_id=None
 ):
     """Stream events from the graph and process them."""
     try:
@@ -261,7 +400,7 @@ async def _stream_graph_events(
             )
 
             async for event in _process_message_chunk(
-                message_chunk, message_metadata, thread_id, agent
+                message_chunk, message_metadata, thread_id, agent, conversation_id
             ):
                 yield event
     except Exception as e:
@@ -278,6 +417,7 @@ async def _stream_graph_events(
 async def _astream_workflow_generator(
     messages: List[dict],
     thread_id: str,
+    conversation_id: str,
     resources: List[Resource],
     max_plan_iterations: int,
     max_step_num: int,
@@ -289,6 +429,35 @@ async def _astream_workflow_generator(
     report_style: ReportStyle,
     enable_deep_thinking: bool,
 ):
+    # Send initial event with full conversation data
+    conv_repo = ConversationRepository()
+    try:
+        conversation = conv_repo.get_conversation(conversation_id)
+        conv_data = {
+            "thread_id": thread_id,
+            "conversation_id": conversation_id,
+            "id": "init",
+            "role": "system"
+        }
+        if conversation:
+            conv_data["conversation"] = {
+                "id": conversation.id,
+                "title": conversation.title,
+                "created_at": conversation.created_at.isoformat(),
+                "updated_at": conversation.updated_at.isoformat(),
+                "message_count": conversation.message_count,
+                "metadata": conversation.metadata
+            }
+            logger.info(f"🔵 Sending conversation_init with data: {conversation.id}, title: {conversation.title}")
+        else:
+            logger.warning(f"⚠️ Conversation {conversation_id} not found when sending conversation_init")
+        yield _make_event("conversation_init", conv_data)
+    finally:
+        conv_repo.close()
+    
+    # Track accumulated AI response for database saving
+    accumulated_response = {"content": "", "agent": None, "finish_reason": None}
+    
     # Process initial messages
     for message in messages:
         if isinstance(message, dict) and "content" in message:
@@ -304,6 +473,7 @@ async def _astream_workflow_generator(
         "auto_accepted_plan": auto_accepted_plan,
         "enable_background_investigation": enable_background_investigation,
         "research_topic": messages[-1]["content"] if messages else "",
+        "conversation_id": conversation_id,  # 添加conversation_id到state
     }
 
     if not auto_accepted_plan and interrupt_feedback:
@@ -344,7 +514,7 @@ async def _astream_workflow_generator(
                 graph.checkpointer = checkpointer
                 graph.store = in_memory_store
                 async for event in _stream_graph_events(
-                    graph, workflow_input, workflow_config, thread_id
+                    graph, workflow_input, workflow_config, thread_id, conversation_id
                 ):
                     yield event
 
@@ -356,13 +526,13 @@ async def _astream_workflow_generator(
                 graph.checkpointer = checkpointer
                 graph.store = in_memory_store
                 async for event in _stream_graph_events(
-                    graph, workflow_input, workflow_config, thread_id
+                    graph, workflow_input, workflow_config, thread_id, conversation_id
                 ):
                     yield event
     else:
         # Use graph without MongoDB checkpointer
         async for event in _stream_graph_events(
-            graph, workflow_input, workflow_config, thread_id
+            graph, workflow_input, workflow_config, thread_id, conversation_id
         ):
             yield event
 
@@ -611,3 +781,293 @@ async def config():
         rag=RAGConfigResponse(provider=SELECTED_RAG_PROVIDER),
         models=get_configured_llm_models(),
     )
+
+# ============================================================================
+# Conversation Management APIs
+# ============================================================================
+
+
+@app.post("/api/conversations", response_model=ConversationResponse)
+async def create_conversation(request: CreateConversationRequest):
+    """Create a new conversation."""
+    repo = ConversationRepository()
+    try:
+        conversation = repo.create_conversation(
+            title=request.title or "New Conversation",
+            metadata=request.metadata
+        )
+        
+        if not conversation:
+            raise HTTPException(status_code=500, detail="Failed to create conversation")
+        
+        return ConversationResponse(
+            id=conversation.id,
+            title=conversation.title,
+            created_at=conversation.created_at,
+            updated_at=conversation.updated_at,
+            message_count=conversation.message_count,
+            metadata=conversation.metadata
+        )
+    finally:
+        repo.close()
+
+
+@app.get("/api/conversations", response_model=ConversationListResponse)
+async def list_conversations(
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0)
+):
+    """List all conversations."""
+    repo = ConversationRepository()
+    try:
+        conversations = repo.list_conversations(limit=limit, offset=offset)
+        
+        return ConversationListResponse(
+            conversations=[
+                ConversationResponse(
+                    id=conv.id,
+                    title=conv.title,
+                    created_at=conv.created_at,
+                    updated_at=conv.updated_at,
+                    message_count=conv.message_count,
+                    metadata=conv.metadata
+                )
+                for conv in conversations
+            ],
+            total=len(conversations),
+            limit=limit,
+            offset=offset
+        )
+    finally:
+        repo.close()
+
+
+@app.get("/api/conversations/{conversation_id}", response_model=ConversationResponse)
+async def get_conversation(conversation_id: str):
+    """Get a specific conversation."""
+    repo = ConversationRepository()
+    try:
+        conversation = repo.get_conversation(conversation_id)
+        
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        return ConversationResponse(
+            id=conversation.id,
+            title=conversation.title,
+            created_at=conversation.created_at,
+            updated_at=conversation.updated_at,
+            message_count=conversation.message_count,
+            metadata=conversation.metadata
+        )
+    finally:
+        repo.close()
+
+
+@app.put("/api/conversations/{conversation_id}", response_model=ConversationResponse)
+async def update_conversation(conversation_id: str, request: UpdateConversationRequest):
+    """Update a conversation's title or metadata."""
+    repo = ConversationRepository()
+    try:
+        success = repo.update_conversation(
+            conversation_id=conversation_id,
+            title=request.title,
+            metadata=request.metadata
+        )
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        # Get updated conversation
+        conversation = repo.get_conversation(conversation_id)
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        return ConversationResponse(
+            id=conversation.id,
+            title=conversation.title,
+            created_at=conversation.created_at,
+            updated_at=conversation.updated_at,
+            message_count=conversation.message_count,
+            metadata=conversation.metadata
+        )
+    finally:
+        repo.close()
+
+
+@app.delete("/api/conversations/{conversation_id}")
+async def delete_conversation(conversation_id: str):
+    """Delete a conversation and all its messages."""
+    repo = ConversationRepository()
+    try:
+        success = repo.delete_conversation(conversation_id)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        return {"status": "success", "message": "Conversation deleted"}
+    finally:
+        repo.close()
+
+
+@app.get("/api/conversations/{conversation_id}/messages", response_model=MessageListResponse)
+async def get_conversation_messages(
+    conversation_id: str,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0)
+):
+    """Get messages for a conversation."""
+    msg_repo = MessageRepository()
+    try:
+        messages = msg_repo.get_messages(
+            conversation_id=conversation_id,
+            limit=limit,
+            offset=offset
+        )
+        
+        return MessageListResponse(
+            messages=[
+                MessageResponse(
+                    id=msg.id,
+                    conversation_id=msg.conversation_id,
+                    role=msg.role,
+                    content=msg.content,
+                    agent=msg.agent,
+                    metadata=msg.metadata,
+                    created_at=msg.created_at
+                )
+                for msg in messages
+            ],
+            total=len(messages),
+            limit=limit,
+            offset=offset
+        )
+    finally:
+        msg_repo.close()
+
+
+@app.post("/api/conversations/generate-title", response_model=GenerateTitleResponse)
+async def generate_conversation_title(request: GenerateTitleRequest):
+    """Generate a title for a conversation based on the first message."""
+    from src.llms.llm import get_llm_by_type
+    
+    try:
+        # Use the basic model to generate a concise title
+        llm = get_llm_by_type("basic")
+        
+        prompt = f"""Based on this user question, generate a short, descriptive title (max 6 words):
+
+Question: {request.first_message}
+
+Generate ONLY the title, no quotes or extra text."""
+
+        response = llm.invoke(prompt)
+        title = response.content.strip().strip('"').strip("'")
+        
+        # Fallback to first 50 chars if generation fails
+        if not title or len(title) > 100:
+            title = request.first_message[:50] + ("..." if len(request.first_message) > 50 else "")
+        
+        return GenerateTitleResponse(title=title)
+        
+    except Exception as e:
+        logger.error(f"Failed to generate title: {e}")
+        # Fallback to first message preview
+        title = request.first_message[:50] + ("..." if len(request.first_message) > 50 else "")
+        return GenerateTitleResponse(title=title)
+
+
+@app.get("/api/conversations/{conversation_id}/export")
+async def export_conversation(
+    conversation_id: str,
+    format: str = Query("markdown", regex="^(markdown|json)$")
+):
+    """Export a conversation in markdown or JSON format."""
+    conv_repo = ConversationRepository()
+    msg_repo = MessageRepository()
+    
+    try:
+        # Get conversation
+        conversation = conv_repo.get_conversation(conversation_id)
+        if not conversation:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        # Get all messages
+        messages = msg_repo.get_messages(conversation_id, limit=1000)
+        
+        if format == "markdown":
+            # Generate markdown export
+            lines = [
+                f"# {conversation.title}",
+                "",
+                f"**Created:** {conversation.created_at.strftime('%Y-%m-%d %H:%M:%S')}",
+                f"**Updated:** {conversation.updated_at.strftime('%Y-%m-%d %H:%M:%S')}",
+                f"**Messages:** {conversation.message_count}",
+                "",
+                "---",
+                ""
+            ]
+            
+            for msg in messages:
+                role_label = {
+                    "user": "👤 User",
+                    "assistant": "🤖 Assistant",
+                    "system": "⚙️ System"
+                }.get(msg.role, msg.role.capitalize())
+                
+                if msg.agent:
+                    role_label += f" ({msg.agent})"
+                
+                lines.append(f"## {role_label}")
+                lines.append(f"*{msg.created_at.strftime('%Y-%m-%d %H:%M:%S')}*")
+                lines.append("")
+                lines.append(msg.content)
+                lines.append("")
+                lines.append("---")
+                lines.append("")
+            
+            content = "\n".join(lines)
+            
+            return Response(
+                content=content,
+                media_type="text/markdown",
+                headers={
+                    "Content-Disposition": f'attachment; filename="conversation_{conversation_id}.md"'
+                }
+            )
+        else:
+            # JSON export
+            export_data = {
+                "conversation": {
+                    "id": conversation.id,
+                    "title": conversation.title,
+                    "created_at": conversation.created_at.isoformat(),
+                    "updated_at": conversation.updated_at.isoformat(),
+                    "message_count": conversation.message_count,
+                    "metadata": conversation.metadata
+                },
+                "messages": [
+                    {
+                        "id": msg.id,
+                        "role": msg.role,
+                        "content": msg.content,
+                        "agent": msg.agent,
+                        "metadata": msg.metadata,
+                        "created_at": msg.created_at.isoformat()
+                    }
+                    for msg in messages
+                ]
+            }
+            
+            return Response(
+                content=json.dumps(export_data, indent=2, ensure_ascii=False),
+                media_type="application/json",
+                headers={
+                    "Content-Disposition": f'attachment; filename="conversation_{conversation_id}.json"'
+                }
+            )
+            
+    finally:
+        conv_repo.close()
+        msg_repo.close()
+

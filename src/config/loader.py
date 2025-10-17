@@ -69,7 +69,7 @@ def load_yaml_config(file_path: str) -> Dict[str, Any]:
         return _config_cache[file_path]
 
     # 如果缓存中不存在，则加载并处理配置
-    with open(file_path, "r") as f:
+    with open(file_path, "r", encoding="utf-8") as f:
         config = yaml.safe_load(f)
     processed_config = process_dict(config)
 

@@ -1,11 +1,159 @@
-generation_id	created_at	cost_total	cost_web_search	cost_cache	cost_file_processing	byok_usage_inference	tokens_prompt	tokens_completion	tokens_reasoning	model_permaslug	provider_name	variant	cancelled	streamed	user	finish_reason_raw	finish_reason_normalized	generation_time_ms	time_to_first_token_ms	app_name	api_key_name
-gen-1760615728-oXfzIzp2iDxjykCMdkuT	55:27.7	0.076875				0	13028	6059	1925	google/gemini-2.5-pro	Google	standard	FALSE	TRUE		STOP	stop	70238	3400		deerflow
-gen-1760615659-nThtFw8PgJ9JbDKO45RB	54:19.4	0.007314				0	74086	9025	5952	openai/gpt-5-nano-2025-08-07	OpenAI	standard	FALSE	TRUE		completed	stop	67057	12050		deerflow
-gen-1760615614-CC7UWgkHSf1RCg6Pcs6O	53:34.4	0.000501				0	558	1183	768	openai/gpt-5-nano-2025-08-07	OpenAI	standard	FALSE	TRUE		completed	tool_calls	17684	9146		deerflow
-gen-1760615558-cQhtGuT6YNOJnwGh2WPX	52:38.1	0.00476				0	36441	7347	3200	openai/gpt-5-nano-2025-08-07	OpenAI	standard	FALSE	TRUE		completed	stop	55123	6277		deerflow
-gen-1760615535-zv4TlBnGWLcaOhxTeaPL	52:16.0	0.000445				0	1067	980	768	openai/gpt-5-nano-2025-08-07	OpenAI	standard	FALSE	TRUE		completed	tool_calls	9591	8218		deerflow
-gen-1760615523-9r5ZzWzNQOlu3EmAqedn	52:03.0	0.000618				0	5337	879	832	openai/gpt-5-nano-2025-08-07	OpenAI	standard	FALSE	TRUE		completed	tool_calls	8250	8133		deerflow
-gen-1760615441-RGsSU7vFqaKzZyf9P2Uz	50:41.1	0.008525				0	85959	10570	7104	openai/gpt-5-nano-2025-08-07	OpenAI	standard	FALSE	TRUE		completed	stop	80758	15796		deerflow
-gen-1760615401-fNx2stBucsiouvLKw3fl	50:01.1	0.000496				0	102	1228	768	openai/gpt-5-nano-2025-08-07	OpenAI	standard	FALSE	TRUE		completed	tool_calls	15611	4699		deerflow
-gen-1760615375-nThhUIBodco8YLlUt0n2	49:34.5	0.020557				0	2078	1796	1263	google/gemini-2.5-pro	Google	standard	FALSE	TRUE		STOP	stop	21422	2682		deerflow
-gen-1760615360-Z6wz5xWTpVfZCIjqmPTK	49:20.1	0.000264				0	672	577	512	openai/gpt-5-nano-2025-08-07	OpenAI	standard	FALSE	TRUE		completed	tool_calls	12019	11003		deerflow
+PS C:\Users\Administrator\Desktop\test\deer-flow> uv run server.py --reload
+2025-10-17 16:52:38,201 - __main__ - INFO - Setting Windows event loop policy for asyncio
+2025-10-17 16:52:38,204 - __main__ - INFO - Starting DeerFlow API server on localhost:8000
+INFO:     Will watch for changes in these directories: ['C:\\Users\\Administrator\\Desktop\\test\\deer-flow']
+INFO:     Uvicorn running on http://localhost:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [13628] using WatchFiles
+2025-10-17 16:52:39,189 - __mp_main__ - INFO - Setting Windows event loop policy for asyncio
+2025-10-17 16:52:39,418 - watchfiles.main - INFO - 1 change detected
+2025-10-17 16:52:40,032 - watchfiles.main - INFO - 5 changes detected
+2025-10-17 16:52:55,790 - src.graph.checkpoint - INFO - Successfully connected to PostgreSQL
+2025-10-17 16:52:55,802 - src.graph.checkpoint - INFO - Chat streams table created/verified successfully
+2025-10-17 16:52:56,101 - src.server.app - INFO - Allowed origins: ['http://localhost:3000', 'http://localhost:3001']
+2025-10-17 16:52:56,228 - watchfiles.main - INFO - 10 changes detected
+2025-10-17 16:52:56,523 - src.database.models - INFO - Successfully connected to PostgreSQL
+2025-10-17 16:52:56,533 - src.database.models - INFO - Database tables initialized successfully
+2025-10-17 16:52:56,788 - watchfiles.main - INFO - 68 changes detected
+INFO:     Started server process [11948]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+2025-10-17 16:53:18,743 - watchfiles.main - INFO - 1 change detected
+2025-10-17 16:53:45,596 - watchfiles.main - INFO - 6 changes detected
+2025-10-17 16:53:46,068 - watchfiles.main - INFO - 14 changes detected
+2025-10-17 16:53:46,435 - watchfiles.main - INFO - 51 changes detected
+2025-10-17 16:53:50,273 - watchfiles.main - INFO - 63 changes detected
+2025-10-17 16:55:08,077 - watchfiles.main - INFO - 1 change detected
+2025-10-17 16:55:09,062 - watchfiles.main - INFO - 4 changes detected
+2025-10-17 16:55:09,581 - watchfiles.main - INFO - 93 changes detected
+2025-10-17 16:55:15,949 - watchfiles.main - INFO - 5 changes detected
+2025-10-17 16:55:18,482 - watchfiles.main - INFO - 1 change detected
+2025-10-17 16:55:19,830 - watchfiles.main - INFO - 4 changes detected
+INFO:     127.0.0.1:61415 - "GET /api/config HTTP/1.1" 200 OK
+2025-10-17 16:55:24,565 - src.database.models - INFO - Successfully connected to PostgreSQL
+INFO:     127.0.0.1:61414 - "GET /api/conversations?limit=50&offset=0 HTTP/1.1" 200 OK
+2025-10-17 16:55:29,148 - src.database.models - INFO - Successfully connected to PostgreSQL
+INFO:     127.0.0.1:61414 - "GET /api/conversations?limit=50&offset=0 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61418 - "GET /api/config HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61432 - "OPTIONS /api/chat/stream HTTP/1.1" 200 OK
+2025-10-17 16:55:33,679 - src.database.models - INFO - Successfully connected to PostgreSQL
+INFO:     127.0.0.1:61432 - "POST /api/chat/stream HTTP/1.1" 200 OK
+2025-10-17 16:55:33,828 - src.config.configuration - INFO - Recursion limit set to: 30
+2025-10-17 16:55:33,829 - src.server.app - INFO - start async postgres checkpointer.
+2025-10-17 16:55:35,028 - src.graph.nodes - INFO - Coordinator talking.
+2025-10-17 16:55:39,672 - src.database.models - INFO - Successfully connected to PostgreSQL
+INFO:     127.0.0.1:61442 - "GET /api/conversations?limit=50&offset=0 HTTP/1.1" 200 OK
+2025-10-17 16:55:42,331 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-17 16:55:49,585 - src.graph.nodes - INFO - Planner generating full plan
+2025-10-17 16:55:55,653 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-17 16:55:57,144 - watchfiles.main - INFO - 1 change detected
+2025-10-17 16:55:57,604 - watchfiles.main - INFO - 1 change detected
+2025-10-17 16:56:18,304 - src.graph.checkpoint - INFO - Created new conversation with ID: ea2bb945-c1d6-45c5-aff0-93be3ab935e0
+2025-10-17 16:56:18,363 - src.graph.nodes - INFO - Planner response: ```json
+{
+  "locale": "zh-CN",
+  "has_enough_context": false,
+  "thought": "用户询问生产1公斤牛肉需要多少水。这不是一个有单一固定答案的问题。牛肉生产的耗水量（即水足迹）受多种因素的巨大影响，包括养殖系统（工业 
+化饲养 vs. 草地放牧）、地理位置（气候、灌溉需求）、饲料类型（雨养作物 vs. 灌溉作物）以及计算方法（绿水、蓝水、灰水的划分）。因此，为了提供一个全面而
+准确的答案，仅仅给出一个全球平均数是不够的，必须深入研究这些变化的因素和数据范围。我需要收集来自权威机构的数据，分析不同生产模式下的差异，并进行横向
+比较。",
+  "title": "牛肉生产水足迹综合研究计划",
+  "steps": [
+    {
+      "need_search": true,
+      "title": "收集牛肉水足迹的核心数据与构成",
+      "description": "研究并收集关于生产1公斤牛肉所需水量的权威数据，来源应包括但不限于水足迹网络(Water Footprint Network)、联合国粮农组织(FAO)和相 
+关学术研究。必须重点收集：\n1. 全球平均水足迹数值。\n2. 数据范围（即报告的最高值和最低值）。\n3. 水足迹的详细构成，即“绿水”（雨水）、“蓝水”（地表水 
+和地下水）和“灰水”（稀释污染物所需的水）各自的占比和定义。",
+      "step_type": "research"
+    },
+    {
+      "need_search": true,
+      "title": "分析不同生产体系和地理区域对水足迹的影响",
+      "description": "深入调查不同牛肉生产体系对耗水量的具体影响。需要收集的数据包括：\n1. 工业化/谷饲系统（Industrial/Feedlot systems）的水足迹。\n2. 草地放牧/牧场系统（Grazing/Pasture systems）的水足迹。\n3. 混合系统的水足迹。\n同时，收集并比较不同国家或地区（如美国、巴西、欧盟、澳大利亚、阿根
+廷）的数据，以说明气候、农业实践和饲料来源如何导致水足迹的显著差异。",
+      "step_type": "research"
+    },
+    {
+      "need_search": true,
+      "title": "收集牛肉与其他主要食品的水足迹对比数据",
+      "description": "为建立一个全面的参照系，收集生产1公斤其他主要动物蛋白和植物蛋白食品所需的水量数据。必须包括：\n1. 其他肉类：猪肉、羊肉、鸡肉。
+\n2. 主要植物性食品：豆类（如大豆、扁豆）、谷物（如大米、小麦）、坚果和常见蔬菜。\n这些对比数据将有助于更直观地理解牛肉在食物生产水资源消耗中的位置 
+。",
+      "step_type": "research"
+    }
+  ]
+}
+```
+2025-10-17 16:56:18,426 - src.graph.checkpoint - INFO - Updated conversation for thread a99b8964-c3f7-4eea-87a9-39f36174fa7c: 1 rows modified
+2025-10-17 16:56:20,971 - src.database.models - INFO - Successfully connected to PostgreSQL
+INFO:     127.0.0.1:61432 - "GET /api/conversations?limit=50&offset=0 HTTP/1.1" 200 OK
+2025-10-17 16:56:23,367 - src.database.models - INFO - Successfully connected to PostgreSQL
+INFO:     127.0.0.1:61489 - "POST /api/chat/stream HTTP/1.1" 200 OK
+2025-10-17 16:56:23,371 - src.config.configuration - INFO - Recursion limit set to: 30
+2025-10-17 16:56:23,372 - src.server.app - INFO - start async postgres checkpointer.
+2025-10-17 16:56:24,167 - src.graph.nodes - INFO - Plan is accepted by user.
+2025-10-17 16:56:24,193 - src.graph.nodes - INFO - Research team is collaborating on tasks.
+2025-10-17 16:56:24,224 - src.graph.nodes - INFO - Researcher node is researching.
+2025-10-17 16:56:24,256 - src.tools.search - INFO - Tavily search configuration loaded: include_domains=[], exclude_domains=[]
+2025-10-17 16:56:24,274 - src.graph.nodes - INFO - Researcher tools: [LoggedTavilySearchWithImages(name='web_search', max_results=4, include_raw_content=True, include_images=True, api_wrapper=EnhancedTavilySearchAPIWrapper(tavily_api_key=SecretStr('**********'), api_base_url=None), include_image_descriptions=True), StructuredTool(name='crawl_tool', description='Use this to crawl a url and get a readable content in markdown format.', args_schema=<class 'langchain_core.utils.pydantic.crawl_tool'>, func=<function crawl_tool at 0x00000228CD54B600>), StructuredTool(name='github_analyzer_tool', description='Analyze GitHub repositories for tech selection purposes.\n\nThis tool performs comprehensive analysis including:\n- Basic info (stars, forks, language, license)\n- Commit frequency (last 3 months)\n- Issue response time and status\n- PR merge rate and discussion quality\n- Community health indicators\n- CI/CD setup\n- Overall health score\n\nReturns a detailed analysis report for comparison and selection.', args_schema=<class 'langchain_core.utils.pydantic.github_analyzer_tool'>, func=<function github_analyzer_tool at 0x00000228CD55CD60>)]
+2025-10-17 16:56:24,294 - src.utils.tokenizer_factory - INFO - Using tiktoken tokenizer for model: openai/gpt-5-nano
+2025-10-17 16:56:24,301 - src.utils.tokenizer_factory - WARNING - Model openai/gpt-5-nano not found in tiktoken, using cl100k_base encoding
+2025-10-17 16:56:25,776 - src.graph.nodes - INFO - Executing step: 收集牛肉水足迹的核心数据与构成, agent: researcher
+2025-10-17 16:56:25,777 - src.graph.nodes - INFO - Recursion limit set to: 30
+2025-10-17 16:56:25,779 - src.graph.nodes - INFO - Agent input: {'messages': [HumanMessage(content='# Research Topic\n\n牛肉生产水足迹综合研究计划\n\n# Current Step\n\n## Title\n\n收集牛肉水足迹的核心数据与构成\n\n## Description\n\n研究并收集关于生产1公斤牛肉所需水量的权威数据，来源应包括但不限 
+于水足迹网络(Water Footprint Network)、联合国粮农组织(FAO)和相关学术研究。必须重点收集：\n1. 全球平均水足迹数值。\n2. 数据范围（即报告的最高值和最低
+值）。\n3. 水足迹的详细构成，即“绿水”（雨水）、“蓝水”（地表水和地下水）和“灰水”（稀释污染物所需的水）各自的占比和定义。\n\n## Locale\n\nzh-CN', additional_kwargs={}, response_metadata={}), HumanMessage(content='IMPORTANT: DO NOT include inline citations in the text. Instead, track all sources and include a References section at the end using link reference format. Include an empty line between each citation for better readability. Use this 
+format for each reference:\n- [Source Title](URL)\n\n- [Another Source](URL)', additional_kwargs={}, response_metadata={}, name='system')]}
+2025-10-17 16:56:25,784 - src.graph.nodes - INFO - [AGENT DEBUG] Before agent.ainvoke - input message count: 2
+2025-10-17 16:56:25,874 - src.graph.nodes - INFO - [PRE_MODEL_HOOK] Called with 2 messages
+2025-10-17 16:56:25,917 - src.utils.context_manager - INFO - [COMPRESS DEBUG] Before compression:
+2025-10-17 16:56:25,917 - src.utils.context_manager - INFO -   - Total messages: 2
+2025-10-17 16:56:25,918 - src.utils.context_manager - INFO -   - Total tokens: 328
+2025-10-17 16:56:25,918 - src.utils.context_manager - INFO -   - Token limit: 163840
+2025-10-17 16:56:25,919 - src.utils.context_manager - INFO -   - Preserve prefix count: 3
+2025-10-17 16:56:25,919 - src.utils.context_manager - INFO -   - First 3 message types: ['HumanMessage', 'HumanMessage']
+2025-10-17 16:56:25,920 - src.utils.context_manager - INFO -   - First 3 message tokens: [262, 66]
+2025-10-17 16:56:25,922 - src.utils.context_manager - INFO - [COMPRESS DEBUG] Messages are within limit, no compression needed
+2025-10-17 16:56:25,928 - src.graph.nodes - INFO - [PRE_MODEL_HOOK] Compressed to 2 messages
+2025-10-17 16:56:25,934 - src.graph.nodes - INFO - [PRE_MODEL_HOOK] Returning llm_input_messages with 2 compressed messages
+2025-10-17 16:56:27,301 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-17 16:56:28,891 - src.database.models - INFO - Successfully connected to PostgreSQL
+INFO:     127.0.0.1:61492 - "GET /api/conversations?limit=50&offset=0 HTTP/1.1" 200 OK
+2025-10-17 16:56:29,105 - watchfiles.main - INFO - 1 change detected
+2025-10-17 16:56:30,082 - watchfiles.main - INFO - 1 change detected
+2025-10-17 16:56:42,349 - src.tools.search_postprocessor - INFO - Search result post-processing: 9 -> 9 (removed 0 duplicates/low-quality)
+2025-10-17 16:56:42,355 - src.graph.nodes - INFO - [PRE_MODEL_HOOK] Called with 4 messages
+2025-10-17 16:56:42,364 - src.utils.context_manager - INFO - [COMPRESS DEBUG] Before compression:
+2025-10-17 16:56:42,365 - src.utils.context_manager - INFO -   - Total messages: 4
+2025-10-17 16:56:42,365 - src.utils.context_manager - INFO -   - Total tokens: 3430
+2025-10-17 16:56:42,365 - src.utils.context_manager - INFO -   - Token limit: 163840
+2025-10-17 16:56:42,366 - src.utils.context_manager - INFO -   - Preserve prefix count: 3
+2025-10-17 16:56:42,366 - src.utils.context_manager - INFO -   - First 3 message types: ['HumanMessage', 'HumanMessage', 'AIMessage']
+2025-10-17 16:56:42,367 - src.utils.context_manager - INFO -   - First 3 message tokens: [262, 66, 80]
+2025-10-17 16:56:42,367 - src.utils.context_manager - INFO -   - Last 3 message types: ['HumanMessage', 'AIMessage', 'ToolMessage']
+2025-10-17 16:56:42,370 - src.utils.context_manager - INFO - [COMPRESS DEBUG] Messages are within limit, no compression needed
+2025-10-17 16:56:42,370 - src.graph.nodes - INFO - [PRE_MODEL_HOOK] Compressed to 4 messages
+2025-10-17 16:56:42,371 - src.graph.nodes - INFO - [PRE_MODEL_HOOK] Returning llm_input_messages with 4 compressed messages
+2025-10-17 16:56:43,491 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-17 16:56:51,906 - watchfiles.main - INFO - 3 changes detected
+2025-10-17 16:56:52,266 - watchfiles.main - INFO - 1 change detected
+2025-10-17 16:57:00,451 - src.tools.search_postprocessor - INFO - Search result post-processing: 9 -> 9 (removed 0 duplicates/low-quality)
+2025-10-17 16:57:01,320 - src.tools.search_postprocessor - INFO - Search result post-processing: 9 -> 9 (removed 0 duplicates/low-quality)
+2025-10-17 16:57:01,782 - src.tools.search_postprocessor - INFO - Search result post-processing: 9 -> 9 (removed 0 duplicates/low-quality)
+2025-10-17 16:57:02,383 - src.tools.search_postprocessor - INFO - Search result post-processing: 9 -> 9 (removed 0 duplicates/low-quality)
+2025-10-17 16:57:03,550 - src.tools.search_postprocessor - INFO - Search result post-processing: 9 -> 9 (removed 0 duplicates/low-quality)
+2025-10-17 16:57:03,559 - src.graph.nodes - INFO - [PRE_MODEL_HOOK] Called with 10 messages
+2025-10-17 16:57:03,680 - src.utils.context_manager - INFO - [COMPRESS DEBUG] Before compression:
+2025-10-17 16:57:03,681 - src.utils.context_manager - INFO -   - Total messages: 10
+2025-10-17 16:57:03,682 - src.utils.context_manager - INFO -   - Total tokens: 19872
+2025-10-17 16:57:03,683 - src.utils.context_manager - INFO -   - Token limit: 163840
+2025-10-17 16:57:03,684 - src.utils.context_manager - INFO -   - Preserve prefix count: 3
+2025-10-17 16:57:03,684 - src.utils.context_manager - INFO -   - First 3 message types: ['HumanMessage', 'HumanMessage', 'AIMessage']
+2025-10-17 16:57:03,688 - src.utils.context_manager - INFO -   - First 3 message tokens: [262, 66, 80]
+2025-10-17 16:57:03,689 - src.utils.context_manager - INFO -   - Last 3 message types: ['ToolMessage', 'ToolMessage', 'ToolMessage']
+2025-10-17 16:57:03,756 - src.utils.context_manager - INFO - [COMPRESS DEBUG] Messages are within limit, no compression needed
+2025-10-17 16:57:03,756 - src.graph.nodes - INFO - [PRE_MODEL_HOOK] Compressed to 10 messages
+2025-10-17 16:57:03,757 - src.graph.nodes - INFO - [PRE_MODEL_HOOK] Returning llm_input_messages with 10 compressed messages
+2025-10-17 16:57:05,424 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-17 16:57:16,321 - src.database.models - INFO - Successfully connected to PostgreSQL
+INFO:     127.0.0.1:61724 - "GET /api/conversations?limit=50&offset=0 HTTP/1.1" 200 O

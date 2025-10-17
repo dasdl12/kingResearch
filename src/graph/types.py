@@ -22,3 +22,4 @@ class State(MessagesState):
     auto_accepted_plan: bool = False
     enable_background_investigation: bool = True
     background_investigation_results: str = None
+    conversation_id: str = None  # Add conversation ID to state

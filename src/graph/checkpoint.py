@@ -371,3 +371,33 @@ def chat_stream_message(thread_id: str, message: str, finish_reason: str) -> boo
         )
     else:
         return False
+
+
+def update_conversation_title(conversation_id: str, title: str) -> bool:
+    """
+    Update conversation title in database.
+
+    Args:
+        conversation_id: Conversation ID
+        title: New title for the conversation
+
+    Returns:
+        bool: True if update was successful
+    """
+    from src.database.models import ConversationRepository
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    
+    try:
+        repo = ConversationRepository()
+        try:
+            success = repo.update_conversation(conversation_id, title=title)
+            if success:
+                logger.info(f"📝 [DEBUG] Updated conversation {conversation_id} title to: '{title}'")
+            return success
+        finally:
+            repo.close()
+    except Exception as e:
+        logger.error(f"Failed to update conversation title: {e}")
+        return False

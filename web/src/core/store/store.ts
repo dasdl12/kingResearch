@@ -4,20 +4,33 @@
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import { useShallow } from "zustand/react/shallow";
 
-import { chatStream, generatePodcast } from "../api";
+import { chatStream, generatePodcast, fetchConversations, createConversation, deleteConversation as apiDeleteConversation, updateConversation } from "../api";
 import type { Message, Resource } from "../messages";
+import type { Conversation } from "../api/conversations";
 import { mergeMessage } from "../messages";
 import { parseJSON } from "../utils";
 
 import { getChatStreamSettings } from "./settings-store";
 
-const THREAD_ID = nanoid();
+// Get conversation ID from localStorage or create new
+const getStoredConversationId = () => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("current_conversation_id") || null;
+  }
+  return null;
+};
+
+const STORED_CONVERSATION_ID = getStoredConversationId();
 
 export const useStore = create<{
   responding: boolean;
   threadId: string | undefined;
+  conversationId: string | null;
+  conversations: Conversation[];
+  currentConversation: Conversation | null;
   messageIds: string[];
   messages: Map<string, Message>;
   researchIds: string[];
@@ -33,9 +46,20 @@ export const useStore = create<{
   openResearch: (researchId: string | null) => void;
   closeResearch: () => void;
   setOngoingResearch: (researchId: string | null) => void;
+  
+  // Conversation management
+  setConversationId: (id: string) => void;
+  setConversations: (conversations: Conversation[]) => void;
+  setCurrentConversation: (conversation: Conversation | null) => void;
+  addConversation: (conversation: Conversation) => void;
+  removeConversation: (id: string) => void;
+  updateConversationInList: (conversation: Conversation) => void;
 }>((set) => ({
   responding: false,
-  threadId: THREAD_ID,
+  threadId: STORED_CONVERSATION_ID || nanoid(),
+  conversationId: STORED_CONVERSATION_ID,
+  conversations: [],
+  currentConversation: null,
   messageIds: [],
   messages: new Map<string, Message>(),
   researchIds: [],
@@ -72,6 +96,37 @@ export const useStore = create<{
   setOngoingResearch(researchId: string | null) {
     set({ ongoingResearchId: researchId });
   },
+  
+  // Conversation management
+  setConversationId(id: string) {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("current_conversation_id", id);
+    }
+    set({ conversationId: id, threadId: id });
+  },
+  setConversations(conversations: Conversation[]) {
+    set({ conversations });
+  },
+  setCurrentConversation(conversation: Conversation | null) {
+    set({ currentConversation: conversation });
+  },
+  addConversation(conversation: Conversation) {
+    set((state) => ({
+      conversations: [conversation, ...state.conversations],
+    }));
+  },
+  removeConversation(id: string) {
+    set((state) => ({
+      conversations: state.conversations.filter((c) => c.id !== id),
+    }));
+  },
+  updateConversationInList(conversation: Conversation) {
+    set((state) => ({
+      conversations: state.conversations.map((c) =>
+        c.id === conversation.id ? conversation : c
+      ),
+    }));
+  },
 }));
 
 export async function sendMessage(
@@ -85,10 +140,13 @@ export async function sendMessage(
   } = {},
   options: { abortSignal?: AbortSignal } = {},
 ) {
+  // Get current conversation ID or use stored one
+  const currentConversationId = useStore.getState().conversationId || getStoredConversationId() || "__default__";
+  
   if (content != null) {
     appendMessage({
       id: nanoid(),
-      threadId: THREAD_ID,
+      threadId: currentConversationId,
       role: "user",
       content: content,
       contentChunks: [content],
@@ -100,7 +158,7 @@ export async function sendMessage(
   const stream = chatStream(
     content ?? "[REPLAY]",
     {
-      thread_id: THREAD_ID,
+      thread_id: currentConversationId,
       interrupt_feedback: interruptFeedback,
       resources,
       auto_accepted_plan: settings.autoAcceptedPlan,
@@ -118,9 +176,76 @@ export async function sendMessage(
 
   setResponding(true);
   let messageId: string | undefined;
+  let newConversationId: string | null = null;
+  
   try {
     for await (const event of stream) {
       const { type, data } = event;
+      
+      // Handle conversation initialization
+      if (type === "conversation_init") {
+        console.log("🔵 [DEBUG] Received conversation_init event:", data);
+        newConversationId = data.conversation_id;
+        useStore.getState().setConversationId(data.conversation_id);
+        
+        // If conversation data is provided, add it to the list immediately
+        if (data.conversation) {
+          const conversation: Conversation = {
+            id: data.conversation.id,
+            title: data.conversation.title,
+            created_at: data.conversation.created_at,
+            updated_at: data.conversation.updated_at,
+            message_count: data.conversation.message_count,
+            metadata: data.conversation.metadata,
+          };
+          
+          console.log("🟢 [DEBUG] Adding conversation to list:", conversation);
+          
+          // Check if conversation already exists in the list
+          const existingConv = useStore.getState().conversations.find(c => c.id === conversation.id);
+          if (!existingConv) {
+            // Add new conversation to the beginning of the list
+            useStore.getState().addConversation(conversation);
+            console.log("✅ [DEBUG] New conversation added to list");
+          } else {
+            // Update existing conversation
+            useStore.getState().updateConversationInList(conversation);
+            console.log("✅ [DEBUG] Existing conversation updated");
+          }
+        } else {
+          console.warn("⚠️ [DEBUG] conversation_init received but no conversation data - backend may have created a new one");
+          // The backend should have created a new conversation
+          // It will be picked up on the next list refresh or next conversation_init event
+        }
+        
+        continue;
+      }
+      
+      // Handle conversation title update
+      if (type === "conversation_title_updated") {
+        console.log("🟡 [DEBUG] Received conversation_title_updated event:", data);
+        const conversationId = data.conversation_id;
+        const newTitle = data.title;
+        
+        // Update the conversation in the list with the new title
+        const conversations = useStore.getState().conversations;
+        const conversation = conversations.find(c => c.id === conversationId);
+        
+        if (conversation) {
+          const updatedConversation = {
+            ...conversation,
+            title: newTitle,
+            updated_at: new Date().toISOString(),
+          };
+          useStore.getState().updateConversationInList(updatedConversation);
+          console.log("✅ [DEBUG] Conversation title updated to:", newTitle);
+        } else {
+          console.warn("⚠️ [DEBUG] Conversation not found for title update:", conversationId);
+        }
+        
+        continue;
+      }
+      
       messageId = data.id;
       let message: Message | undefined;
       if (type === "tool_call_result") {

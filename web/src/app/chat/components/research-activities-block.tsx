@@ -40,8 +40,14 @@ export function ResearchActivitiesBlock({
 }) {
   const activityIds = useStore((state) =>
     state.researchActivityIds.get(researchId),
-  )!;
+  );
   const ongoing = useStore((state) => state.ongoingResearchId === researchId);
+  
+  // Safety check: if no activityIds, return empty component
+  if (!activityIds || activityIds.length === 0) {
+    return null;
+  }
+  
   return (
     <>
       <ul className={cn("flex flex-col py-4", className)}>

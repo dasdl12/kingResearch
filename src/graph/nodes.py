@@ -143,19 +143,35 @@ def planner_node(
             return Command(goto="reporter")
         else:
             return Command(goto="__end__")
+    
+    # Update conversation title with plan title
+    plan_title = None
+    if isinstance(curr_plan, dict) and curr_plan.get("title"):
+        plan_title = curr_plan.get("title")
+        conversation_id = state.get("conversation_id")
+        if conversation_id and plan_title:
+            from src.graph.checkpoint import update_conversation_title
+            update_conversation_title(conversation_id, plan_title)
+            logger.info(f"📝 [DEBUG] Updated conversation title from planner: '{plan_title}'")
+    
+    # Create AIMessage with title metadata for SSE notification
+    ai_message_metadata = {}
+    if plan_title:
+        ai_message_metadata["conversation_title"] = plan_title
+    
     if isinstance(curr_plan, dict) and curr_plan.get("has_enough_context"):
         logger.info("Planner response has enough context.")
         new_plan = Plan.model_validate(curr_plan)
         return Command(
             update={
-                "messages": [AIMessage(content=full_response, name="planner")],
+                "messages": [AIMessage(content=full_response, name="planner", additional_kwargs=ai_message_metadata)],
                 "current_plan": new_plan,
             },
             goto="reporter",
         )
     return Command(
         update={
-            "messages": [AIMessage(content=full_response, name="planner")],
+            "messages": [AIMessage(content=full_response, name="planner", additional_kwargs=ai_message_metadata)],
             "current_plan": full_response,
         },
         goto="human_feedback",
@@ -201,6 +217,15 @@ def human_feedback_node(
             return Command(goto="reporter")
         else:
             return Command(goto="__end__")
+
+    # Update conversation title if plan has a new title
+    if isinstance(new_plan, dict) and new_plan.get("title"):
+        plan_title = new_plan.get("title")
+        conversation_id = state.get("conversation_id")
+        if conversation_id and plan_title:
+            from src.graph.checkpoint import update_conversation_title
+            update_conversation_title(conversation_id, plan_title)
+            logger.info(f"📝 [DEBUG] Updated conversation title after plan edit: '{plan_title}'")
 
     return Command(
         update={
