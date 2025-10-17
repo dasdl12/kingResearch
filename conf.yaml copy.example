@@ -40,6 +40,31 @@ BASIC_MODEL:
 #   api_key: xxxx
 #   max_retries: 3 # Maximum number of retries for LLM calls
 
+# Summary model is used for context compression and intelligent summarization
+# Use a fast, cost-effective model through OpenRouter or any OpenAI-compatible API
+# SUMMARY_MODEL:
+#   base_url: https://openrouter.ai/api/v1
+#   model: "openai/gpt-4o-mini"  # Fast and cheap model for summarization
+#   api_key: xxxx
+#   token_limit: 128000  # Context window size
+#   max_retries: 3
+
+# Context management configuration
+CONTEXT_MANAGEMENT:
+  enabled: true
+  preserve_prefix_count: 3  # Number of initial messages to preserve
+  compression_strategy: "smart_summary"  # Options: "smart_summary", "simple_drop"
+  enable_summarization: true  # Enable intelligent summarization of tool results
+  # Budget allocation for different parts of context (must sum to 1.0)
+  budget_allocation:
+    prefix: 0.15      # 15% for initial messages
+    tool_results: 0.60  # 60% for tool results (with summarization)
+    recent_context: 0.20  # 20% for recent messages
+    output_reserve: 0.05  # 5% reserved for model output
+  # Summarization settings
+  summarization:
+    max_tokens_per_tool: 2000  # Max tokens per summarized tool result
+    trigger_ratio: 0.7  # Trigger summarization when tool results exceed 70% of token limit
 
 # OTHER SETTINGS:
 # Search engine configuration (Only supports Tavily currently)
