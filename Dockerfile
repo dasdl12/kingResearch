@@ -13,16 +13,14 @@ WORKDIR /app
 # Copy dependency files first
 COPY pyproject.toml uv.lock ./
 
-# Pre-cache the application dependencies.
-RUN --mount=type=cache,id=uv-cache,target=/root/.cache/uv \
-    uv sync --locked --no-install-project
+# Install dependencies (Railway has its own caching)
+RUN uv sync --locked --no-install-project
 
 # Copy the application into the container.
 COPY . /app
 
-# Install the application dependencies.
-RUN --mount=type=cache,id=uv-cache,target=/root/.cache/uv \
-    uv sync --locked
+# Install the project
+RUN uv sync --locked
 
 EXPOSE 8000
 
