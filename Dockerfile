@@ -29,4 +29,5 @@ ENV PATH="/app/.venv/bin:$PATH"
 ENV VIRTUAL_ENV="/app/.venv"
 
 # Run the application
-CMD ["sh", "-c", "python server.py --host 0.0.0.0 --port ${PORT:-8000}"]
+# Railway sets PORT automatically, fallback to 8000 if not set
+CMD python server.py --host 0.0.0.0 --port ${PORT:-8000}
