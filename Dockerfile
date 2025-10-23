@@ -24,7 +24,6 @@ RUN uv sync --locked
 
 EXPOSE 8000
 
-# Initialize database and run the application
-# Railway will use PORT environment variable
-CMD python scripts/init_railway_db.py && \
-    uv run python server.py --host 0.0.0.0 --port ${PORT:-8000}
+# Run the application
+# Database initialization will happen on first request
+CMD ["sh", "-c", "uv run python server.py --host 0.0.0.0 --port ${PORT:-8000}"]

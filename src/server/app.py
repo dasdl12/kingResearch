@@ -110,6 +110,57 @@ in_memory_store = InMemoryStore()
 graph = build_graph_with_memory()
 
 
+# Startup event to initialize database
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database on startup."""
+    logger.info("Application startup - initializing database...")
+    
+    try:
+        db_url = get_str_env("LANGGRAPH_CHECKPOINT_DB_URL", "")
+        checkpoint_enabled = get_bool_env("LANGGRAPH_CHECKPOINT_SAVER", False)
+        
+        if checkpoint_enabled and db_url and db_url.startswith("postgresql://"):
+            logger.info("Checking database tables...")
+            
+            from pathlib import Path
+            migrations_dir = Path(__file__).parent.parent.parent / "migrations"
+            
+            with psycopg.connect(db_url) as conn:
+                with conn.cursor() as cur:
+                    # Check if tables exist
+                    cur.execute("""
+                        SELECT table_name 
+                        FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name IN ('users', 'research_replays')
+                    """)
+                    existing_tables = [row[0] for row in cur.fetchall()]
+                    
+                    if 'users' in existing_tables and 'research_replays' in existing_tables:
+                        logger.info("✅ Database tables already exist")
+                    else:
+                        logger.info("📝 Creating database tables...")
+                        
+                        # Run migrations
+                        for migration_file in sorted(migrations_dir.glob("*.sql")):
+                            logger.info(f"Running migration: {migration_file.name}")
+                            with open(migration_file, 'r', encoding='utf-8') as f:
+                                sql = f.read()
+                            cur.execute(sql)
+                            conn.commit()
+                        
+                        logger.info("✅ Database initialization completed")
+        else:
+            logger.info("Database checkpoint not enabled or not PostgreSQL")
+            
+    except Exception as e:
+        logger.error(f"Database initialization failed (non-fatal): {e}")
+        logger.info("Application will continue without database persistence")
+    
+    logger.info("✅ Application startup complete")
+
+
 @app.get("/")
 async def root():
     """Root endpoint - API status check."""
