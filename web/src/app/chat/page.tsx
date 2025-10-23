@@ -31,7 +31,8 @@ const Main = dynamic(() => import("./main"), {
   ),
 });
 
-export default function HomePage() {
+// Component that uses useSearchParams - must be wrapped in Suspense
+function ChatPageContent() {
   const t = useTranslations("chat.page");
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -117,5 +118,18 @@ export default function HomePage() {
       </header>
       <Main />
     </div>
+  );
+}
+
+// Export with Suspense wrapper
+export default function HomePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-screen w-screen items-center justify-center">
+        Loading KingResearch...
+      </div>
+    }>
+      <ChatPageContent />
+    </Suspense>
   );
 }
