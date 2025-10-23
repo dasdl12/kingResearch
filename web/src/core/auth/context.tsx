@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
+import { resolveServiceURL } from "~/core/api/resolve-service-url";
 
 interface User {
   user_id: string;
@@ -39,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUserInfo = async (authToken: string) => {
     try {
-      const response = await fetch("/api/auth/me", {
+      const response = await fetch(resolveServiceURL("auth/me"), {
         headers: {
           "Authorization": `Bearer ${authToken}`,
         },
@@ -60,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (username: string, password: string) => {
-    const response = await fetch("/api/auth/login", {
+    const response = await fetch(resolveServiceURL("auth/login"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
@@ -83,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (username: string, email: string, password: string, displayName?: string) => {
-    const response = await fetch("/api/auth/register", {
+    const response = await fetch(resolveServiceURL("auth/register"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, email, password, display_name: displayName }),
