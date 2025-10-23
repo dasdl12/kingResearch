@@ -27,7 +27,6 @@ EXPOSE 8000
 # Set Python path to use the virtual environment
 ENV PATH="/app/.venv/bin:$PATH"
 ENV VIRTUAL_ENV="/app/.venv"
-ENV PORT=8000
 
-# Run the application
-CMD ["sh", "-c", "python server.py --host 0.0.0.0 --port $PORT"]
+# Run the application (PORT will be read from environment variable)
+CMD ["python", "server.py", "--host", "0.0.0.0"]
