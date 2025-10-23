@@ -181,6 +181,7 @@ def get_configured_llm_models() -> dict[str, list[str]]:
 def get_llm_token_limit_by_type(llm_type: str) -> int:
     """
     Get the maximum token limit for a given LLM type.
+    Priority: environment variables > conf.yaml
 
     Args:
         llm_type (str): The type of LLM.
@@ -192,6 +193,17 @@ def get_llm_token_limit_by_type(llm_type: str) -> int:
     llm_type_config_keys = _get_llm_type_config_keys()
     config_key = llm_type_config_keys.get(llm_type)
 
+    # First try to get from environment variable
+    env_var_name = f"{llm_type.upper()}_MODEL__token_limit"
+    env_token_limit = os.getenv(env_var_name)
+    
+    if env_token_limit:
+        try:
+            return int(env_token_limit)
+        except ValueError:
+            logger.warning(f"Invalid token_limit value in {env_var_name}: {env_token_limit}")
+    
+    # Fallback to conf.yaml
     conf = load_yaml_config(_get_config_file_path())
     llm_max_token = conf.get(config_key, {}).get("token_limit")
     return llm_max_token

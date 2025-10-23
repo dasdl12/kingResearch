@@ -17,8 +17,33 @@ from src.tools.search_postprocessor import SearchResultPostProcessor
 
 
 def get_search_config():
+    """Get search engine configuration from environment variables or conf.yaml"""
+    import os
+    # Priority: environment variables > conf.yaml
+    env_config = {}
+    
+    # Read from environment variables with SEARCH_ENGINE__ prefix
+    prefix = "SEARCH_ENGINE__"
+    for key, value in os.environ.items():
+        if key.startswith(prefix):
+            config_key = key[len(prefix):].lower()
+            # Convert string values to appropriate types
+            if value.lower() in ('true', 'false'):
+                env_config[config_key] = value.lower() == 'true'
+            elif value.isdigit():
+                env_config[config_key] = int(value)
+            elif value.replace('.', '', 1).isdigit():
+                env_config[config_key] = float(value)
+            else:
+                env_config[config_key] = value
+    
+    # Read from conf.yaml as fallback
     config = load_yaml_config("conf.yaml")
-    search_config = config.get("SEARCH_ENGINE", {})
+    yaml_config = config.get("SEARCH_ENGINE", {})
+    
+    # Merge: env variables take precedence
+    search_config = {**yaml_config, **env_config}
+    
     return search_config
 
 
