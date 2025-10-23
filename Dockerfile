@@ -27,7 +27,7 @@ EXPOSE 8000
 # Set Python path to use the virtual environment
 ENV PATH="/app/.venv/bin:$PATH"
 ENV VIRTUAL_ENV="/app/.venv"
+ENV PORT=8000
 
 # Run the application
-# Railway sets PORT automatically, fallback to 8000 if not set
-CMD python server.py --host 0.0.0.0 --port ${PORT:-8000}
+CMD ["sh", "-c", "python server.py --host 0.0.0.0 --port $PORT"]
