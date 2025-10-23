@@ -24,6 +24,9 @@ RUN uv sync --locked
 
 EXPOSE 8000
 
+# Set Python path to use the virtual environment
+ENV PATH="/app/.venv/bin:$PATH"
+ENV VIRTUAL_ENV="/app/.venv"
+
 # Run the application
-# Database initialization will happen on first request
-CMD ["sh", "-c", "uv run python server.py --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "python server.py --host 0.0.0.0 --port ${PORT:-8000}"]
