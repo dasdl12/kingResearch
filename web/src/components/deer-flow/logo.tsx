@@ -9,7 +9,7 @@ export function Logo() {
       className="opacity-70 transition-opacity duration-300 hover:opacity-100"
       href="/"
     >
-      🦌 DeerFlow
+      <img src="/logo.png" alt="KingResearch" className="h-17 inline-block" />
     </Link>
   );
 }

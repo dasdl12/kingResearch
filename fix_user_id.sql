@@ -23,3 +23,5 @@ WHERE is_completed = TRUE
 ORDER BY completed_at DESC
 LIMIT 10;
 
+
+

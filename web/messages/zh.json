@@ -2,6 +2,7 @@
   "common": {
     "cancel": "取消",
     "save": "保存",
+    "close": "关闭",
     "settings": "设置",
     "getStarted": "开始使用",
     "learnMore": "了解更多",
@@ -16,21 +17,21 @@
     "placeholderWithRag": "我能帮你做什么？\n你可以通过 @ 引用 RAG 资源。"
   },
   "header": {
-    "title": "DeerFlow"
+    "title": "KingResearch"
   },
   "hero": {
     "title": "深度研究",
     "subtitle": "触手可及",
-    "description": "认识 DeerFlow，您的个人深度研究助手。凭借搜索引擎、网络爬虫、Python 和 MCP 服务等强大工具，它能提供即时洞察、全面报告，甚至制作引人入胜的播客。",
+    "description": "认识 KingResearch，您的个人深度研究助手。凭借搜索引擎、网络爬虫、Python 和 MCP 服务等强大工具，它能提供即时洞察、全面报告，甚至制作引人入胜的播客。",
     "footnote": "* DEER 代表深度探索和高效研究。"
   },
   "settings": {
-    "title": "DeerFlow 设置",
-    "description": "在这里管理您的 DeerFlow 设置。",
+    "title": "KingResearch 设置",
+    "description": "在这里管理您的 KingResearch 设置。",
     "cancel": "取消",
     "addServers": "添加服务器",
     "addNewMCPServers": "添加新的 MCP 服务器",
-    "mcpConfigDescription": "DeerFlow 使用标准 JSON MCP 配置来创建新服务器。",
+      "mcpConfigDescription": "KingResearch 使用标准 JSON MCP 配置来创建新服务器。",
     "pasteConfigBelow": "将您的配置粘贴到下面，然后点击\"添加\"来添加新服务器。",
     "add": "添加",
     "general": {
@@ -48,7 +49,7 @@
     },
     "mcp": {
       "title": "MCP 服务器",
-      "description": "模型上下文协议通过集成外部工具来增强 DeerFlow，用于私域搜索、网页浏览、订餐等任务。点击这里",
+      "description": "模型上下文协议通过集成外部工具来增强 KingResearch，用于私域搜索、网页浏览、订餐等任务。点击这里",
       "learnMore": "了解更多关于 MCP 的信息。",
       "enableDisable": "启用/禁用服务器",
       "deleteServer": "删除服务器",
@@ -77,17 +78,31 @@
   "footer": {
     "quote": "源于开源，回馈开源。",
     "license": "基于 MIT 许可证授权",
-    "copyright": "DeerFlow"
+    "copyright": "KingResearch"
   },
   "chat": {
     "page": {
-      "loading": "正在加载 DeerFlow...",
+      "loading": "正在加载 KingResearch...",
       "welcomeUser": "欢迎，{username}",
       "starOnGitHub": "在 GitHub 上点赞"
     },
+    "history": {
+      "title": "研究历史",
+      "yourHistory": "您的研究历史",
+      "viewingFor": "正在查看 {username} 的已完成研究",
+      "signInPrompt": "请登录以查看您的研究历史",
+      "newResearch": "新建研究",
+      "new": "新建",
+      "signInToView": "登录以保存和查看您的研究历史",
+      "signIn": "登录",
+      "noResearches": "还没有已完成的研究。开始一个新的研究来查看它！",
+      "view": "查看",
+      "deleteConfirm": "您确定要删除这项研究吗？",
+      "deleteFailed": "删除研究失败"
+    },
     "welcome": {
       "greeting": "👋 你好！",
-      "description": "欢迎来到 🦌 DeerFlow，一个基于前沿语言模型构建的深度研究助手，帮助您搜索网络、浏览信息并处理复杂任务。"
+      "description": "欢迎来到 KingResearch，一个基于前沿语言模型构建的深度研究助手，帮助您搜索网络、浏览信息并处理复杂任务。"
     },
     "conversationStarters": [
       "埃菲尔铁塔比世界最高建筑高多少倍？",
@@ -99,12 +114,12 @@
       "deepThinking": "深度思考",
       "deepThinkingTooltip": {
         "title": "深度思考模式：{status}",
-        "description": "启用后，DeerFlow 将使用推理模型（{model}）生成更深思熟虑的计划。"
+        "description": "启用后，KingResearch 将使用推理模型（{model}）生成更深思熟虑的计划。"
       },
       "investigation": "调研",
       "investigationTooltip": {
         "title": "调研模式：{status}",
-        "description": "启用后，DeerFlow 将在规划前进行快速搜索。这对于与时事和新闻相关的研究很有用。"
+        "description": "启用后，KingResearch 将在规划前进行快速搜索。这对于与时事和新闻相关的研究很有用。"
       },
       "enhancePrompt": "用 AI 增强提示",
       "on": "开启",
@@ -139,9 +154,9 @@
     },
     "messages": {
       "replaying": "回放中",
-      "replayDescription": "DeerFlow 正在回放对话...",
+      "replayDescription": "KingResearch 正在回放对话...",
       "replayHasStopped": "回放已停止。",
-      "replayModeDescription": "您现在处于 DeerFlow 的回放模式。点击右侧的\"播放\"按钮开始。",
+      "replayModeDescription": "您现在处于 KingResearch 的回放模式。点击右侧的\"播放\"按钮开始。",
       "play": "播放",
       "fastForward": "快进",
       "demoNotice": "* 此网站仅用于演示目的。如果您想尝试自己的问题，请",
@@ -197,7 +212,7 @@
     },
     "coreFeatures": {
       "title": "核心功能",
-      "description": "了解是什么让 DeerFlow 如此有效。",
+      "description": "了解是什么让 KingResearch 如此有效。",
       "features": [
         {
           "name": "深入挖掘，触及更广",
@@ -226,9 +241,31 @@
       "description": "通过我们的监督者 + 交接设计模式体验智能体团队合作。"
     },
     "joinCommunity": {
-      "title": "加入 DeerFlow 社区",
-      "description": "贡献精彩想法，塑造 DeerFlow 的未来。协作、创新并产生影响。",
+      "title": "加入 KingResearch 社区",
+      "description": "贡献精彩想法，塑造 KingResearch 的未来。协作、创新并产生影响。",
       "contributeNow": "立即贡献"
     }
+  },
+  "auth": {
+    "welcomeBack": "欢迎回来",
+    "createAccount": "创建账户",
+    "signInPrompt": "登录以访问您的研究历史",
+    "signUpPrompt": "注册以开始保存您的研究",
+    "username": "用户名",
+    "enterUsername": "输入您的用户名",
+    "email": "邮箱",
+    "enterEmail": "输入您的邮箱",
+    "displayName": "显示名称（可选）",
+    "enterDisplayName": "输入您的显示名称",
+    "password": "密码",
+    "enterPassword": "输入您的密码",
+    "passwordMinLength": "密码至少需要6个字符",
+    "pleaseWait": "请稍候...",
+    "signIn": "登录",
+    "signUp": "注册",
+    "noAccount": "还没有账户？立即注册",
+    "hasAccount": "已有账户？立即登录",
+    "continueWithout": "不登录继续使用",
+    "signOut": "退出登录"
   }
 }

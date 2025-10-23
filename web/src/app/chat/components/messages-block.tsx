@@ -100,14 +100,27 @@ export function MessagesBlock({ className }: { className?: string }) {
               onSend={handleSend}
             />
           )}
-          <InputBox
-            className="h-full w-full"
-            responding={responding}
-            feedback={feedback}
-            onSend={handleSend}
-            onCancel={handleCancel}
-            onRemoveFeedback={handleRemoveFeedback}
+          {/* Mascot positioned above input box, with bottom 10% under the dialog */}
+          <img 
+            src="/mascot.gif" 
+            alt="Mascot"
+            className="absolute left-3/4 w-[calc(100%/10)] h-auto pointer-events-none"
+            style={{
+              bottom: 'calc(100% - 18%)',
+              transform: 'translateX(-50%)',
+              zIndex: 15, // 高于 ScrollContainer 的阴影层 (z-index: 10)，但仍在 InputBox 下方
+            }}
           />
+          <div className="relative h-full w-full" style={{ zIndex: 20 }}>
+            <InputBox
+              className="h-full w-full"
+              responding={responding}
+              feedback={feedback}
+              onSend={handleSend}
+              onCancel={handleCancel}
+              onRemoveFeedback={handleRemoveFeedback}
+            />
+          </div>
         </div>
       ) : (
         <>

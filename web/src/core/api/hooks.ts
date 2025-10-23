@@ -29,13 +29,13 @@ export function useReplayMetadata() {
         setError(false);
         setTitle(title ?? null);
         if (title) {
-          document.title = `${title} - DeerFlow`;
+          document.title = `${title} - KingResearch`;
         }
       })
       .catch(() => {
         setError(true);
         setTitle("Error: the replay is not available.");
-        document.title = "DeerFlow";
+        document.title = "KingResearch";
       })
       .finally(() => {
         isLoading.current = false;

@@ -25,7 +25,8 @@ const Main = dynamic(() => import("./main"), {
   ssr: false,
   loading: () => (
     <div className="flex h-full w-full items-center justify-center">
-      Loading DeerFlow...
+      {/* Using translation key from chat.page.loading */}
+      Loading KingResearch...
     </div>
   ),
 });

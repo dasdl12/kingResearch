@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useAuth } from "~/core/auth";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 
 export default function AuthPage() {
+  const t = useTranslations("auth");
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -42,12 +44,10 @@ export default function AuthPage() {
       <div className="w-full max-w-md space-y-8 rounded-lg border bg-card p-8 shadow-lg">
         <div className="text-center">
           <h2 className="text-3xl font-bold tracking-tight">
-            {isLogin ? "Welcome Back" : "Create Account"}
+            {isLogin ? t("welcomeBack") : t("createAccount")}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {isLogin
-              ? "Sign in to access your research history"
-              : "Sign up to start saving your research"}
+            {isLogin ? t("signInPrompt") : t("signUpPrompt")}
           </p>
         </div>
 
@@ -60,11 +60,11 @@ export default function AuthPage() {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">{t("username")}</Label>
               <Input
                 id="username"
                 type="text"
-                placeholder="Enter your username"
+                placeholder={t("enterUsername")}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -75,11 +75,11 @@ export default function AuthPage() {
             {!isLogin && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t("email")}</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Enter your email"
+                    placeholder={t("enterEmail")}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -88,11 +88,11 @@ export default function AuthPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="displayName">Display Name (Optional)</Label>
+                  <Label htmlFor="displayName">{t("displayName")}</Label>
                   <Input
                     id="displayName"
                     type="text"
-                    placeholder="Enter your display name"
+                    placeholder={t("enterDisplayName")}
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     disabled={loading}
@@ -102,11 +102,11 @@ export default function AuthPage() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("password")}</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter your password"
+                placeholder={t("enterPassword")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -115,14 +115,14 @@ export default function AuthPage() {
               />
               {!isLogin && (
                 <p className="text-xs text-muted-foreground">
-                  Password must be at least 6 characters
+                  {t("passwordMinLength")}
                 </p>
               )}
             </div>
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Please wait..." : isLogin ? "Sign In" : "Sign Up"}
+            {loading ? t("pleaseWait") : isLogin ? t("signIn") : t("signUp")}
           </Button>
         </form>
 
@@ -136,9 +136,7 @@ export default function AuthPage() {
             className="text-sm text-primary hover:underline"
             disabled={loading}
           >
-            {isLogin
-              ? "Don't have an account? Sign up"
-              : "Already have an account? Sign in"}
+            {isLogin ? t("noAccount") : t("hasAccount")}
           </button>
         </div>
 
@@ -149,7 +147,7 @@ export default function AuthPage() {
             className="text-sm text-muted-foreground hover:underline"
             disabled={loading}
           >
-            Continue without signing in
+            {t("continueWithout")}
           </button>
         </div>
       </div>

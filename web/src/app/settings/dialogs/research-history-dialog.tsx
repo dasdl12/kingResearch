@@ -3,6 +3,7 @@
 import { Trash2, Eye, MessageSquareText, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 import { LoadingAnimation } from "~/components/deer-flow/loading-animation";
 import { Tooltip } from "~/components/deer-flow/tooltip";
@@ -27,6 +28,8 @@ import { getResearches, deleteResearch, type Research } from "~/core/api/researc
 import { cn } from "~/lib/utils";
 
 export function ResearchHistoryDialog() {
+  const t = useTranslations("chat.history");
+  const tCommon = useTranslations("common");
   const [open, setOpen] = useState(false);
   const [researches, setResearches] = useState<Research[]>([]);
   const [loading, setLoading] = useState(false);
@@ -59,7 +62,7 @@ export function ResearchHistoryDialog() {
 
   const handleDelete = async (threadId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("Are you sure you want to delete this research?")) {
+    if (!confirm(t("deleteConfirm"))) {
       return;
     }
 
@@ -67,7 +70,7 @@ export function ResearchHistoryDialog() {
     if (success) {
       setResearches(researches.filter((r) => r.thread_id !== threadId));
     } else {
-      alert("Failed to delete research");
+      alert(t("deleteFailed"));
     }
   };
 
@@ -82,26 +85,26 @@ export function ResearchHistoryDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Tooltip title="Research History" className="max-w-60">
+      <Tooltip title={t("title")} className="max-w-60">
         <DialogTrigger asChild>
           <Button variant="ghost" size="icon">
             <MessageSquareText />
           </Button>
         </DialogTrigger>
       </Tooltip>
-      <DialogContent className="sm:max-w-[900px] max-h-[80vh]">
+      <DialogContent className="sm:max-w-[900px] max-h-[80vh]" showClose={false}>
         <DialogHeader>
           <div className="flex items-center justify-between">
             <div>
-              <DialogTitle>Your Research History</DialogTitle>
+              <DialogTitle>{t("yourHistory")}</DialogTitle>
               <DialogDescription>
                 {user
-                  ? `Viewing completed researches for ${user.username}`
-                  : "Please sign in to view your research history"}
+                  ? t("viewingFor", { username: user.username })
+                  : t("signInPrompt")}
               </DialogDescription>
             </div>
             {user && (
-              <Tooltip title="New Research">
+              <Tooltip title={t("newResearch")}>
                 <Button
                   size="sm"
                   onClick={() => {
@@ -111,7 +114,7 @@ export function ResearchHistoryDialog() {
                   }}
                 >
                   <Plus className="w-4 h-4 mr-1" />
-                  New
+                  {t("new")}
                 </Button>
               </Tooltip>
             )}
@@ -122,7 +125,7 @@ export function ResearchHistoryDialog() {
           {!token ? (
             <div className="flex flex-col items-center justify-center flex-1 space-y-4">
               <p className="text-muted-foreground">
-                Sign in to save and view your research history
+                {t("signInToView")}
               </p>
               <Button
                 onClick={() => {
@@ -130,7 +133,7 @@ export function ResearchHistoryDialog() {
                   router.push("/auth");
                 }}
               >
-                Sign In
+                {t("signIn")}
               </Button>
             </div>
           ) : loading ? (
@@ -140,7 +143,7 @@ export function ResearchHistoryDialog() {
           ) : researches.length === 0 ? (
             <div className="flex items-center justify-center flex-1">
               <p className="text-muted-foreground">
-                No completed researches yet. Start a new research to see it here!
+                {t("noResearches")}
               </p>
             </div>
           ) : (
@@ -171,7 +174,7 @@ export function ResearchHistoryDialog() {
                         onClick={() => handleView(research.thread_id)}
                       >
                         <Eye className="w-4 h-4 mr-1" />
-                        View
+                        {t("view")}
                       </Button>
                       <Button
                         size="sm"
@@ -190,7 +193,7 @@ export function ResearchHistoryDialog() {
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
-            Close
+            {tCommon("close")}
           </Button>
         </DialogFooter>
       </DialogContent>
