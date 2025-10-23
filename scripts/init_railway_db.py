@@ -109,3 +109,4 @@ if __name__ == "__main__":
     logger.info("🚀 Starting Railway database initialization...")
     init_database()
 
+
