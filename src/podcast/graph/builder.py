@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     load_dotenv()
 
-    report_content = open("examples/nanjing_tangbao.md").read()
+    report_content = open("examples/nanjing_tangbao.md", encoding="utf-8").read()
     final_state = workflow.invoke({"input": report_content})
     for line in final_state["script"].lines:
         print("<M>" if line.speaker == "male" else "<F>", line.text)

@@ -10,6 +10,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 
 import { ThemeProviderWrapper } from "~/components/deer-flow/theme-provider-wrapper";
+import { AuthProvider } from "~/core/auth";
 import { env } from "~/env";
 
 import { Toaster } from "../components/deer-flow/toaster";
@@ -49,7 +50,11 @@ export default async function RootLayout({
       </head>
       <body className="bg-app">
         <NextIntlClientProvider messages={messages}>
-          <ThemeProviderWrapper>{children}</ThemeProviderWrapper>
+          <ThemeProviderWrapper>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </ThemeProviderWrapper>
           <Toaster />
         </NextIntlClientProvider>
         {

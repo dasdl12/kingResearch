@@ -18,6 +18,8 @@ const withNextIntl = createNextIntlPlugin('./src/i18n.ts');
 // This decision is based on the current recommendation to avoid using Turbopack for critical projects, as it
 // is still evolving and may not yet be fully stable for production environments.
 
+const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
+
 const config = {
   // For development mode
   turbopack: {
@@ -40,6 +42,15 @@ const config = {
 
   // ... rest of the configuration.
   output: "standalone",
+
+  async rewrites() {
+    return [
+      {
+        source: "/api/:path*",
+        destination: `${apiBase}/api/:path*`,
+      },
+    ];
+  },
 };
 
 export default withNextIntl(config);

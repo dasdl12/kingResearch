@@ -41,6 +41,11 @@ dependencies = [
     "pymilvus>=2.3.0",
     "langchain-milvus>=0.2.1",
     "psycopg[binary]>=3.2.9",
+    "tiktoken>=0.8.0",
+    "passlib[bcrypt]>=1.7.4",
+    "PyJWT>=2.8.0",
+    "python-multipart>=0.0.6",
+    "email-validator>=2.0.0",
 ]
 
 [project.optional-dependencies]

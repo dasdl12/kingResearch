@@ -9,7 +9,7 @@ import os
 from typing import Annotated, Any, List, cast
 from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response, StreamingResponse
 from langchain_core.messages import AIMessageChunk, BaseMessage, ToolMessage
@@ -17,14 +17,23 @@ from langgraph.checkpoint.mongodb import AsyncMongoDBSaver
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.store.memory import InMemoryStore
 from langgraph.types import Command
+import psycopg
 from psycopg_pool import AsyncConnectionPool
 
 from src.config.configuration import get_recursion_limit
 from src.config.loader import get_bool_env, get_str_env
 from src.config.report_style import ReportStyle
 from src.config.tools import SELECTED_RAG_PROVIDER
+from src.auth.dependencies import get_current_user, get_current_user_optional
+from src.auth.jwt_handler import create_access_token
+from src.auth.password import hash_password, verify_password
 from src.graph.builder import build_graph_with_memory
-from src.graph.checkpoint import chat_stream_message
+from src.graph.checkpoint import (
+    chat_stream_message,
+    delete_research,
+    get_research_report,
+    get_user_researches,
+)
 from src.llms.llm import get_configured_llm_models
 from src.podcast.graph.builder import build_graph as build_podcast_graph
 from src.ppt.graph.builder import build_graph as build_ppt_graph
@@ -44,6 +53,12 @@ from src.server.chat_request import (
 from src.server.config_request import ConfigResponse
 from src.server.mcp_request import MCPServerMetadataRequest, MCPServerMetadataResponse
 from src.server.mcp_utils import load_mcp_tools
+from src.server.auth_request import (
+    AuthResponse,
+    LoginRequest,
+    RegisterRequest,
+    UserInfo,
+)
 from src.server.rag_request import (
     RAGConfigResponse,
     RAGResourceRequest,
@@ -91,7 +106,10 @@ graph = build_graph_with_memory()
 
 
 @app.post("/api/chat/stream")
-async def chat_stream(request: ChatRequest):
+async def chat_stream(
+    request: ChatRequest,
+    user_id: str | None = Depends(get_current_user_optional),
+):
     # Check if MCP server configuration is enabled
     mcp_enabled = get_bool_env("ENABLE_MCP_SERVER_CONFIGURATION", False)
 
@@ -122,6 +140,7 @@ async def chat_stream(request: ChatRequest):
             request.enable_deep_thinking,
             request.enable_clarification,
             request.max_clarification_rounds,
+            user_id,  # Add user_id to workflow
         ),
         media_type="text/event-stream",
     )
@@ -303,6 +322,7 @@ async def _astream_workflow_generator(
     enable_deep_thinking: bool,
     enable_clarification: bool,
     max_clarification_rounds: int,
+    user_id: str | None = None,
 ):
     # Process initial messages
     for message in messages:
@@ -332,6 +352,7 @@ async def _astream_workflow_generator(
     # Prepare workflow config
     workflow_config = {
         "thread_id": thread_id,
+        "user_id": user_id,  # Add user_id for multi-user support
         "resources": resources,
         "max_plan_iterations": max_plan_iterations,
         "max_step_num": max_step_num,
@@ -628,3 +649,212 @@ async def config():
         rag=RAGConfigResponse(provider=SELECTED_RAG_PROVIDER),
         models=get_configured_llm_models(),
     )
+
+
+# ============================================================
+# Authentication APIs
+# ============================================================
+
+@app.post("/api/auth/register", response_model=AuthResponse)
+async def register(request: RegisterRequest):
+    """User registration endpoint."""
+    try:
+        db_uri = get_str_env("LANGGRAPH_CHECKPOINT_DB_URL")
+        
+        with psycopg.connect(db_uri) as conn:
+            with conn.cursor() as cur:
+                # Check if username or email already exists
+                cur.execute(
+                    "SELECT id FROM users WHERE username = %s OR email = %s",
+                    (request.username, request.email),
+                )
+                if cur.fetchone():
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Username or email already exists"
+                    )
+                
+                # Create user
+                password_hash = hash_password(request.password)
+                cur.execute(
+                    """
+                    INSERT INTO users (username, email, password_hash, display_name)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING id, username, display_name
+                    """,
+                    (request.username, request.email, password_hash, request.display_name),
+                )
+                
+                user = cur.fetchone()
+                conn.commit()
+                
+                # Generate JWT token
+                token = create_access_token(str(user[0]), user[1])
+                
+                return AuthResponse(
+                    access_token=token,
+                    user_id=str(user[0]),
+                    username=user[1],
+                    display_name=user[2],
+                )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Registration error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Registration failed")
+
+
+@app.post("/api/auth/login", response_model=AuthResponse)
+async def login(request: LoginRequest):
+    """User login endpoint."""
+    try:
+        db_uri = get_str_env("LANGGRAPH_CHECKPOINT_DB_URL")
+        
+        with psycopg.connect(db_uri) as conn:
+            with conn.cursor() as cur:
+                # Query user (support username or email login)
+                cur.execute(
+                    """
+                    SELECT id, username, password_hash, display_name, is_active
+                    FROM users
+                    WHERE username = %s OR email = %s
+                    """,
+                    (request.username, request.username),
+                )
+                
+                user = cur.fetchone()
+                
+                if not user:
+                    raise HTTPException(
+                        status_code=401,
+                        detail="Invalid credentials"
+                    )
+                
+                user_id, username, password_hash, display_name, is_active = user
+                
+                # Check account status
+                if not is_active:
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Account disabled"
+                    )
+                
+                # Verify password
+                if not verify_password(request.password, password_hash):
+                    raise HTTPException(
+                        status_code=401,
+                        detail="Invalid credentials"
+                    )
+                
+                # Generate JWT token
+                token = create_access_token(str(user_id), username)
+                
+                return AuthResponse(
+                    access_token=token,
+                    user_id=str(user_id),
+                    username=username,
+                    display_name=display_name,
+                )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Login error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Login failed")
+
+
+@app.get("/api/auth/me", response_model=UserInfo)
+async def get_user_info(user_id: str = Depends(get_current_user)):
+    """Get current user information."""
+    try:
+        db_uri = get_str_env("LANGGRAPH_CHECKPOINT_DB_URL")
+        
+        with psycopg.connect(db_uri) as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT id, username, email, display_name, created_at, 
+                           daily_quota, used_today
+                    FROM users WHERE id = %s
+                    """,
+                    (user_id,),
+                )
+                
+                user = cur.fetchone()
+                if not user:
+                    raise HTTPException(status_code=404, detail="User not found")
+                
+                return UserInfo(
+                    user_id=str(user[0]),
+                    username=user[1],
+                    email=user[2],
+                    display_name=user[3],
+                    created_at=str(user[4]),
+                    daily_quota=user[5],
+                    used_today=user[6],
+                )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Get user info error: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to get user info")
+
+
+# ============================================================
+# Research History APIs
+# ============================================================
+
+@app.get("/api/researches")
+async def get_researches(
+    limit: int = 20,
+    offset: int = 0,
+    user_id: str = Depends(get_current_user),
+):
+    """Get user's completed research list."""
+    try:
+        researches = get_user_researches(user_id, limit, offset)
+        return {"data": researches}
+    except Exception as e:
+        logger.exception(f"Error getting researches: {str(e)}")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR_DETAIL)
+
+
+@app.get("/api/research/{thread_id}")
+async def get_research(
+    thread_id: str,
+    user_id: str = Depends(get_current_user),
+):
+    """Get complete research data (observations + plan + report) for viewing."""
+    try:
+        research = get_research_report(thread_id, user_id)
+        if not research:
+            raise HTTPException(
+                status_code=404,
+                detail="Research not found or access denied"
+            )
+        return research
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error getting research: {str(e)}")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR_DETAIL)
+
+
+@app.delete("/api/research/{thread_id}")
+async def delete_research_endpoint(
+    thread_id: str,
+    user_id: str = Depends(get_current_user),
+):
+    """Delete a research (with ownership verification)."""
+    try:
+        deleted = delete_research(thread_id, user_id)
+        if not deleted:
+            raise HTTPException(
+                status_code=404,
+                detail="Research not found or access denied"
+            )
+        return {"message": "Research deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Error deleting research: {str(e)}")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR_DETAIL)

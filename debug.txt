@@ -1,0 +1,121 @@
+NFO:     Started reloader process [11208] using StatReload
+2025-10-22 16:57:43,697 - __mp_main__ - INFO - Setting Windows event loop policy for asyncio
+2025-10-22 16:57:51,949 - src.utils.context_manager - INFO - tiktoken loaded successfully for accurate token counting
+2025-10-22 16:57:52,021 - src.graph.checkpoint - WARNING - Checkpoint saver is disabled
+2025-10-22 16:57:52,164 - src.server.app - INFO - Allowed origins: ['http://localhost:3000']
+INFO:     Started server process [14820]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.   
+INFO:     127.0.0.1:49838 - "OPTIONS /api/chat/stream HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49838 - "POST /api/chat/stream HTTP/1.1" 200 OK
+2025-10-22 16:58:10,983 - src.config.configuration - INFO - Recursion limit set to: 30
+2025-10-22 16:58:10,997 - src.graph.nodes - INFO - Coordinator talking.
+2025-10-22 16:58:15,313 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-22 16:58:23,006 - src.graph.nodes - INFO - Handing off to planner
+2025-10-22 16:58:23,006 - src.graph.nodes - INFO - Handing off to planner
+2025-10-22 16:58:23,010 - src.graph.nodes - INFO - Planner generating full plan
+2025-10-22 16:58:23,634 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-22 16:58:57,070 - src.graph.nodes - INFO - Planner response: {
+    "locale": "zh-CN",
+    "has_enough_context": false,
+    "thought": "将用户的请求转述为调研目标：对金山云集团进行全面信息调研，涵盖公司概览、历史与股权结构、当前运营与市场定位、竞争格局、财务与风险，以及未来展望，产出可用于撰写详细报告的多维数据集。",
+    "title": "金山云集团信息调研计划",
+    "steps": [
+        {
+            "need_search": true,
+            "title": "金山云集团概览、历史脉络与股权结构",
+            "description": "收集并汇总：成立时间、母公司/控股关系、总部地点、法定代表人、核心业务与产品矩阵、历史里程碑、重大并购与投资、上市信息（如是否上市、上市地、股票代码、披露口径）、近三年营收与利润趋势，以及关键子公司与组织架
+构信息。",
+            "step_type": "research"
+        },
+        {
+            "need_search": true,
+            "title": "当前运营状况、产品线、市场定位与竞争格局",
+            "description": "收集并整理：核心云服务与产品线（云服务器、云数据库、AI/大模型相关云服务、云安全等）、定价策略、渠道与销售模式、客户结构与案例、数据中心布局与容量、区域覆盖、市场份额及增长、主要竞争对手对比（阿里云、腾讯云
+、华为云、AWS中国等）、合作伙伴与生态建设、最近的财务数据分布（若公开披露）及关键运营指标。",
+            "step_type": "research"
+        },
+        {
+            "need_search": false,
+            "title": "数据整合、分析与初步风险/未来展望",
+            "description": "对前两步获取的数据进行整理与初步分析：提取关键指标与趋势，形成简要的风险清单（监管、合规、数据安全、市场竞争、国际扩张等），并给出未来3-5年的情景展望与初步战略要点，准备供最终报告使用的分析框架。",        
+            "step_type": "processing"
+        }
+    ]
+}
+INFO:     127.0.0.1:49838 - "POST /api/chat/stream HTTP/1.1" 200 OK
+2025-10-22 16:58:58,462 - src.config.configuration - INFO - Recursion limit set to: 30
+2025-10-22 16:58:58,467 - src.graph.nodes - INFO - Plan is accepted by user.
+2025-10-22 16:58:58,470 - src.graph.nodes - INFO - Research team is collaborating on tasks.
+2025-10-22 16:58:58,473 - src.graph.nodes - INFO - Researcher node is researching.
+2025-10-22 16:58:58,480 - src.tools.search - INFO - Tavily search configuration loaded: include_domains=[], exclude_domains=[]
+2025-10-22 16:58:58,481 - src.graph.nodes - INFO - Researcher tools: [LoggedTavilySearchWithImages(name='web_search', max_results=3, include_raw_content=True, include_images=True, api_wrapper=EnhancedTavilySearchAPIWrapper(tavily_api_key=SecretStr('**********'), api_base_url=None), include_image_descriptions=True), StructuredTool(name='crawl_tool', description='Use this to crawl a url and get a readable content in markdown format.', args_schema=<class 'langchain_core.utils.pydantic.crawl_tool'>, func=<function crawl_tool at 0x00000267DDB0AC00>)]
+2025-10-22 16:58:59,206 - src.utils.context_manager - INFO - Using o200k_base encoding (supports GPT-5-Nano)
+2025-10-22 16:58:59,232 - src.graph.nodes - INFO - Executing step: 金山云集团概览、历史脉络与股权结构, agent: researcher
+2025-10-22 16:58:59,232 - src.graph.nodes - INFO - Recursion limit set to: 30
+2025-10-22 16:58:59,234 - src.graph.nodes - INFO - Agent input: {'messages': [HumanMessage(content='# Research Topic\n\n金山云集团信息调研计划\n\n# Current Step\n\n## Title\n\n金山云集团概览、历史脉络与股权结构\n\n## Description\n\n 
+收集并汇总：成立时间、母公司/控股关系、总部地点、法定代表人、核心业务与产品矩阵、历史里程碑、重大并购与投资、上市信息（如是否上市、上市地、股票代码、披露口径）、近三年营收与利润趋势，以及关键子公司与组织架构信息。\n\n## Locale\n\nzh-CN', additional_kwargs={}, response_metadata={}), HumanMessage(content='IMPORTANT: DO NOT include inline citations in the text. Instead, track all sources and include a References section at the end using link reference format. Include an empty line between each citation for better readability. Use this format for each reference:\n- [Source Title](URL)\n\n- [Another Source](URL)', additional_kwargs={}, response_metadata={}, name='system')]}
+2025-10-22 16:59:00,479 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-22 16:59:14,796 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 16:59:16,374 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-22 17:00:37,357 - src.graph.nodes - INFO - Step '金山云集团概览、历史脉络与股权结构' execution completed by researcher
+2025-10-22 17:00:37,359 - src.graph.nodes - INFO - Research team is collaborating on tasks.
+2025-10-22 17:00:37,361 - src.graph.nodes - INFO - Researcher node is researching.
+2025-10-22 17:00:37,362 - src.tools.search - INFO - Tavily search configuration loaded: include_domains=[], exclude_domains=[]
+2025-10-22 17:00:37,362 - src.graph.nodes - INFO - Researcher tools: [LoggedTavilySearchWithImages(name='web_search', max_results=3, include_raw_content=True, include_images=True, api_wrapper=EnhancedTavilySearchAPIWrapper(tavily_api_key=SecretStr('**********'), api_base_url=None), include_image_descriptions=True), StructuredTool(name='crawl_tool', description='Use this to crawl a url and get a readable content in markdown format.', args_schema=<class 'langchain_core.utils.pydantic.crawl_tool'>, func=<function crawl_tool at 0x00000267DDB0AC00>)]
+2025-10-22 17:00:37,363 - src.utils.context_manager - INFO - Using o200k_base encoding (supports GPT-5-Nano)
+2025-10-22 17:00:37,374 - src.graph.nodes - INFO - Executing step: 当前运营状况、产品线、市场定位与竞争格局, agent: researcher
+2025-10-22 17:00:37,375 - src.graph.nodes - INFO - Recursion limit set to: 30
+2025-10-22 17:00:37,375 - src.graph.nodes - INFO - Agent input: {'messages': [HumanMessage(content='# Research Topic\n\n金山云集团信息调研计划\n\n# Completed Research Steps\n\n## Completed Step 1: 金山云集团概览、历史脉络与股权结构\n\n<finding>\n以下为围绕“金山云集团信息调研计划”的综合报告，聚焦于成立时间、母公司/控股关系、总部、法定代表人、核心业务与产品矩阵、历史里程碑、重大投资与并购、上市信息、近三年营收与利润趋势，以及关键子公司与组织架构信息。信息来源见文 
+末引用。\n\n- Problem Statement\n  - 对金山云集团进行概览、历史脉络和股权结构的系统调研，整理成立时间、母公司/控股关系、总部地点、法定代表人、核心业务与产品、历史里程碑、重大投资与并购、上市信息、近三年营收与利润趋势，以及关键子公司 
+与组织架构。\n\n- Research Findings\n\n1) 基本信息与公司结构\n  - 成立时间\n    - 金山云控股有限公司成立于2012年。\n  - 母公司/控股关系\n    - 集团被公开披露为由金山软件及小米生态相关方等构成的控股结构，主要股东包括金山软件（Kingsoft Software）以及小米集团等，存在“金山云”为股票上市主体的定位及对外关系。\n  - 总部地点\n    - 总部/注册地址信息显示北京地区，具体地址在香港交易所公告中列示为北京海淀区小米科技园区等相关地址。\n  - 法定代表人\n    - 董事会信息显示副董 
+事长、执行官等高管信息，其中 Tao Zou 先生为副董事长、代理首席执行官（CEO）。上述信息来自公司公开披露的管理层与董事会名单。\n  - 核心业务与产品矩阵\n    - 云计算、云存储、CDN、数据库、数据分析、安全等云计算基础能力，以及垂直行业解决方
+案（包括医疗健康、供应链金融、电子政务、车联网、媒体云、大数据教育培训、云集成服务和云游戏等）等多元化产品线。公司投资者关系页面对云产品矩阵、KingStorage 云存储、云分发网络等产品有明确描述。\n  - 相关参考\n    - Kingsoft Cloud Holdings Limited 公司简介页面对成立时间、产品矩阵和定位的描述\n    - MoMo 的 KC-US 公司页面对公司定位、产品范围及核心业务的描述\n\n2) 历史里程碑与上市信息\n  - 重大里程碑\n    - 2012 年成立（公司起始阶段）\n    - 2020 年在纳斯达克上市，股 
+票代码 KC（美国存托股/ADR 形式）\n    - 2022 年在香港联合交易所主板上市，股票代码 3896\n  - 上市信息与披露口径\n    - 公司在双上市框架下披露纳斯达克（KC）及香港上市信息（3896），并提供了两地上市的并行信息与披露口径。\n  - 2025 年重大
+资金动作\n    - 2025 年9月发布的配售公告显示，拟通过配售代理发行338,000,000股新股，配售价8.29港元/股，且需获得香港联交所上市委员会批准等条件。此次配售预计对股本的影响为新增配售股份相当于在公告时现有已发行股本的约8.06%（若按披露的前提
+条件进行计算，后续可能因扩大发行而有所调整）。资金用途明确指定80%用于支持AI业务及升级基础设施，20%用于补充营运资金及其他企业用途。\n  - 相关参考\n    - Kingsoft Cloud Holdings Limited 金山云控股有限公司 根據一般授權配售新股份 公告（ 
+香港交易及结算所/HKEX 公告PDF，含上市批准、配售条款、股本影响及用途等）\n    - 金山云控股有限公司相关的上市与披露口径信息（ Nasdaq 香港两地上市信息、股票代码等）\n\n3) 近三年营收与利润趋势\n  - 公开披露的完整年度营收与利润数据在现有 
+公开来源中未逐年完整列出（2022-2024 年度的逐年数据未在提供的资料中完整呈现）。\n  - 已披露的增长指标\n    - 公司公开披露在2019-2021年间收入的年复合增长率（CAGR）为51.3%，超出同期中国云服务市场的总体增速（36.4%）。该数据来自公司投资者
+关系页面对历史增长的描述。\n  - 2025 年度相关趋势（简要）\n    - 2025 年上半年，来自小米-金山生态的收入达到人民币11.3亿元，占集团总收入约26%，显示生态合作对收入结构的显著贡献。\n  - 相关参考\n    - 公司简介页面对 2019-2021 年收入 CAGR 的披露\n    - HKEX 配售公告中提及的“来自小米-金山生态”的收入及占比信息\n\n4) 关键子公司与组织架构信息\n  - 关键股东与控股关系\n    - 控股股东及主要股东包括金山软件（Kingsoft Software）与小米集团等；这是公司在双上市框架下的核心股权 
+结构信息。\n  - 董事会与管理层\n    - 董事会成员包括雷军（董事长）等，董事会信息中明确列出副董事长/执行董事鄒濤先生、非执行董事張鐸先生，以及独立非执行董事喻銘鐙先生、王航先生及曲靜淵女士等。\n  - 组织架构要点\n    - 公司属 Kingsoft 
+集团旗下，且与小米生态之间存在紧密的战略协同关系。投资者关系页面与上市披露中均对董事会构成、管理层，以及主要股东关系有所描述。\n  - 重要投资与并购\n    - 公开披露中未列出具体重大并购交易的详细信息；公开披露强调与小米生态的合作及云基 
+础设施、云产品与垂直行业解决方案的协同发展。2025 年配售公告也强调以 AI 与云基础设施升级为核心的资金用途，反映了战略投资与资本运作的侧重点。\n  - 相关参考\n    - HKEX 公告中的董事会构成与股权结构描述\n    - Kingsoft Cloud 投资者关系与
+公司简介页面对股东结构、股权关系的描述\n\n- 附图与图片资料\n  - 相关图片链接（来自调研中提供的图片资源，可用于辅助理解公司架构、历史交易结构及组织架构等方面）\n  - 1) https://img.maoyanqing.com/picgo/20241109191034-ce21f9349a062f2b41cdade772b67c39-e8ab47.png\n  - 2) https://img.maoyanqing.com/picgo/20241109191034-9a91ab5b3f8c384e040d6c4e1c9db678-583ca8.png\n  - 3) https://imgcdn.yicai.com/uppics/images/2023/01/2f8666a54885eedf87c518146d1efd47.jpg\n  - 4) https://img.maoyanqing.com/picgo/20241109191034-f6e0233c2ca20113431e126591937dc2-5d7247.png\n  - 5) x-raw-image:///fd8d57f35a0d2d946bf54e5bff5dfe7fe3ee9b7d968532cbf5c2d57be2f96680\n  - 注：图片描述信息见各图片的元数据与提供者描述，可以作为 
+文献附加材料使用。\n\n- Conclusion\n  - 金山云是一个具有双重上市架构的云服务提供商，成立于2012年，母公司/控股结构与小米生态存在紧密协同关系，核心业务涵盖云计算、云存储、CDN、数据库等产品。公司在2020年纳斯达克上市（KC），于2022年在香 
+港上市（3896），并在2025年进行大规模新股配售以支持 AI 及基础设施升级，显示出其在 AI 时代的资本市场活跃与扩张计划。尽管公开资料提供了清晰的企业定位、上市信息和与小米生态的协同关系，但对近三年的完整年度营收与利润数据仍缺乏统一、权威的 
+公开披露，需要进一步获取公司年度报告或证券监管披露中的完整数字以完成更精确的趋势分析。整体看，公司的增长驱动在于云基础设施与垂直行业应用的扩展，以及与生态伙伴的协同发展，未来资金用途明确指向 AI 相关云服务能力的提升与基础设施扩展。\n\n- References\n  - [公司簡介 - Kingsoft Cloud Holdings Limited](https://ir.ksyun.com/zh-hant/corporate-profile/)\n\n  - [金山云公司简介及介绍- moomoo](https://www.moomoo.com/hans/stock/KC-US/company)\n\n  - [Kingsoft Cloud Holdings Limited 金山云控股有限公司 根據一般授權配售新股份 公告](https://www1.hkexnews.hk/listedco/listconews/sehk/2025/0924/2025092400102_c.pdf)\n</finding>\n\n# Current Step\n\n## Title\n\n当前运营状况、产品线、市场定位与竞争格局\n\n## Description\n\n收集并整理：核心云服务与产品线（云服务器、云数据库、AI/大模型相关云服务、云安全等）、定价策略、渠道与销售模式、客户结构与案例、数据中心布局与容量、区域覆盖、市场份额及增长、主要竞争对手对比（阿里云、腾讯云、华为云、AWS中国 
+等）、合作伙伴与生态建设、最近的财务数据分布（若公开披露）及关键运营指标。\n\n## Locale\n\nzh-CN', additional_kwargs={}, response_metadata={}), HumanMessage(content='IMPORTANT: DO NOT include inline citations in the text. Instead, track all sources and include a References section at the end using link reference format. Include an empty line between each citation for better readability. Use this format for each reference:\n- [Source Title](URL)\n\n- [Another Source](URL)', additional_kwargs={}, response_metadata={}, name='system')]}
+2025-10-22 17:00:38,568 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-10-22 17:01:26,179 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:26,476 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:26,521 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:26,891 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:27,016 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:27,194 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:27,678 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:28,290 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:28,429 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:28,810 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:29,101 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:29,271 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:29,432 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:29,913 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:29,917 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:30,305 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:30,429 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:30,571 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:31,313 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:31,568 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:33,134 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:34,703 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:37,413 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:38,071 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:43,296 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:48,211 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:01:48,364 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:02:04,787 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:02:10,100 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:02:40,688 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:02:48,441 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:03:20,717 - src.tools.search_postprocessor - INFO - Search result post-processing: 8 -> 8
+2025-10-22 17:03:39,022 - src.utils.context_manager - INFO - Message compression completed: 2998889 -> 151583 tokens (reduction: 94.9%)

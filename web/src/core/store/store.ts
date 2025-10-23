@@ -33,6 +33,16 @@ export const useStore = create<{
   openResearch: (researchId: string | null) => void;
   closeResearch: () => void;
   setOngoingResearch: (researchId: string | null) => void;
+  resetState: () => void;
+  restoreFromHistory: (data: {
+    threadId: string;
+    messages: Message[];
+    researchIds: string[];
+    researchPlanIds: Map<string, string>;
+    researchReportIds: Map<string, string>;
+    researchActivityIds: Map<string, string[]>;
+    openResearchId: string | null;
+  }) => void;
 }>((set) => ({
   responding: false,
   threadId: THREAD_ID,
@@ -71,6 +81,39 @@ export const useStore = create<{
   },
   setOngoingResearch(researchId: string | null) {
     set({ ongoingResearchId: researchId });
+  },
+  resetState() {
+    const newThreadId = nanoid();
+    set({
+      responding: false,
+      threadId: newThreadId,
+      messageIds: [],
+      messages: new Map<string, Message>(),
+      researchIds: [],
+      researchPlanIds: new Map<string, string>(),
+      researchReportIds: new Map<string, string>(),
+      researchActivityIds: new Map<string, string[]>(),
+      ongoingResearchId: null,
+      openResearchId: null,
+    });
+  },
+  restoreFromHistory(data) {
+    const messageIds = data.messages.map((m) => m.id);
+    const messages = new Map<string, Message>();
+    data.messages.forEach((m) => messages.set(m.id, m));
+    
+    set({
+      responding: false,
+      threadId: data.threadId,
+      messageIds,
+      messages,
+      researchIds: data.researchIds,
+      researchPlanIds: data.researchPlanIds,
+      researchReportIds: data.researchReportIds,
+      researchActivityIds: data.researchActivityIds,
+      ongoingResearchId: null,
+      openResearchId: data.openResearchId,
+    });
   },
 }));
 
@@ -120,6 +163,20 @@ export async function sendMessage(
 
   setResponding(true);
   let messageId: string | undefined;
+  const pendingUpdates = new Map<string, Message>();
+  let updateTimer: NodeJS.Timeout | undefined;
+
+  const scheduleUpdate = () => {
+    if (updateTimer) clearTimeout(updateTimer);
+    updateTimer = setTimeout(() => {
+      // Batch update message status
+      if (pendingUpdates.size > 0) {
+        useStore.getState().updateMessages(Array.from(pendingUpdates.values()));
+        pendingUpdates.clear();
+      }
+    }, 16); // ~60fps
+  };
+
   try {
     for await (const event of stream) {
       const { type, data } = event;
@@ -145,7 +202,10 @@ export async function sendMessage(
       message ??= getMessage(messageId);
       if (message) {
         message = mergeMessage(message, event);
-        updateMessage(message);
+        // Collect pending messages for update, instead of updating immediately.
+        pendingUpdates.set(message.id, message);
+        scheduleUpdate();
+
       }
     }
   } catch {
@@ -162,6 +222,12 @@ export async function sendMessage(
     useStore.getState().setOngoingResearch(null);
   } finally {
     setResponding(false);
+    // Ensure all pending updates are processed.
+    if (updateTimer) clearTimeout(updateTimer);
+    if (pendingUpdates.size > 0) {
+      useStore.getState().updateMessages(Array.from(pendingUpdates.values()));
+    }
+
   }
 }
 
@@ -400,4 +466,20 @@ export function useToolCalls() {
         .flat();
     }),
   );
+}
+
+export function resetChatState() {
+  useStore.getState().resetState();
+}
+
+export function restoreChatFromHistory(data: {
+  threadId: string;
+  messages: Message[];
+  researchIds: string[];
+  researchPlanIds: Map<string, string>;
+  researchReportIds: Map<string, string>;
+  researchActivityIds: Map<string, string[]>;
+  openResearchId: string | null;
+}) {
+  useStore.getState().restoreFromHistory(data);
 }

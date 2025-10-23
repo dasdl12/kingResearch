@@ -13,7 +13,21 @@ export function parseJSON<T>(json: string | null | undefined, fallback: T) {
       .replace(/^```plaintext\s*/, "")
       .replace(/^```\s*/, "")
       .replace(/\s*```$/, "");
-    return parse(raw) as T;
+    
+    // First try standard JSON.parse for valid JSON
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      // If standard parsing fails, use best-effort parser with suppressed errors
+      // This prevents console pollution from partial/malformed JSON
+      const originalConsoleError = console.error;
+      try {
+        console.error = () => {}; // Suppress best-effort-json-parser error output
+        return parse(raw) as T;
+      } finally {
+        console.error = originalConsoleError; // Restore original console.error
+      }
+    }
   } catch {
     return fallback;
   }

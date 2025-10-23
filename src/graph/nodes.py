@@ -30,9 +30,128 @@ from src.utils.context_manager import ContextManager
 from src.utils.json_utils import repair_json_output
 
 from ..config import SELECTED_SEARCH_ENGINE, SearchEngine
+from .checkpoint import save_completed_research
 from .types import State
 
 logger = logging.getLogger(__name__)
+
+
+def _format_completed_steps_with_summary(completed_steps, keep_recent_full: int = 2) -> str:
+    """
+    Format completed steps with intelligent summarization to prevent context explosion.
+
+    Strategy:
+    - Keep the most recent N steps in full detail
+    - Summarize older steps to extract only key findings
+    - Maintains research continuity while drastically reducing token usage
+
+    Args:
+        completed_steps: List of completed Step objects
+        keep_recent_full: Number of recent steps to keep in full detail (default: 2)
+
+    Returns:
+        Formatted string with completed steps information
+    """
+    import re
+
+    if not completed_steps:
+        return ""
+
+    result = ""
+    total_steps = len(completed_steps)
+
+    # Determine which steps to summarize vs keep full
+    if total_steps <= keep_recent_full:
+        # Few steps - keep all in full detail
+        for i, step in enumerate(completed_steps):
+            result += f"## Completed Step {i + 1}: {step.title}\n\n"
+            result += f"<finding>\n{step.execution_res}\n</finding>\n\n"
+    else:
+        # Many steps - summarize older ones, keep recent ones full
+        older_steps = completed_steps[:-keep_recent_full]
+        recent_steps = completed_steps[-keep_recent_full:]
+
+        # Summarize older steps
+        if older_steps:
+            result += f"## Summary of Earlier Steps (Steps 1-{len(older_steps)})\n\n"
+            result += "<finding>\n"
+
+            for i, step in enumerate(older_steps):
+                # Extract key findings from execution_res
+                summary = _extract_key_findings(step.execution_res, max_length=500)
+                result += f"**Step {i + 1}: {step.title}**\n"
+                result += f"{summary}\n\n"
+
+            result += "</finding>\n\n"
+
+        # Keep recent steps in full detail
+        for i, step in enumerate(recent_steps, start=len(older_steps) + 1):
+            result += f"## Completed Step {i}: {step.title}\n\n"
+            result += f"<finding>\n{step.execution_res}\n</finding>\n\n"
+
+    return result
+
+
+def _extract_key_findings(content: str, max_length: int = 500) -> str:
+    """
+    Extract key findings from research content using intelligent patterns.
+
+    Args:
+        content: Full research content
+        max_length: Maximum length for extracted findings
+
+    Returns:
+        Summarized key findings
+    """
+    if not content or not isinstance(content, str):
+        return "[No findings available]"
+
+    # Strategy 1: Look for explicit findings or conclusion sections
+    finding_patterns = [
+        r'(?:Key Findings?|关键发现|主要发现)[:\s]*([^\n]+(?:\n(?!#)[^\n]+)*)',
+        r'(?:Conclusion|结论)[:\s]*([^\n]+(?:\n(?!#)[^\n]+)*)',
+        r'(?:Summary|摘要|总结)[:\s]*([^\n]+(?:\n(?!#)[^\n]+)*)',
+    ]
+
+    for pattern in finding_patterns:
+        matches = re.findall(pattern, content, re.IGNORECASE | re.MULTILINE)
+        if matches:
+            # Take the first match and limit length
+            finding = matches[0].strip()
+            if len(finding) > max_length:
+                finding = finding[:max_length] + "..."
+            return finding
+
+    # Strategy 2: Extract bullet points (often contain key info)
+    bullets = re.findall(r'[-•*]\s+([^\n]+)', content)
+    if bullets:
+        # Take first 3-5 bullets
+        key_bullets = bullets[:min(5, len(bullets))]
+        summary = "- " + "\n- ".join(key_bullets)
+        if len(summary) > max_length:
+            summary = summary[:max_length] + "..."
+        return summary
+
+    # Strategy 3: Extract first and last paragraphs
+    paragraphs = [p.strip() for p in content.split('\n\n') if p.strip() and len(p.strip()) > 50]
+    if paragraphs:
+        if len(paragraphs) == 1:
+            summary = paragraphs[0]
+        elif len(paragraphs) == 2:
+            summary = f"{paragraphs[0]}\n\n{paragraphs[1]}"
+        else:
+            # First and last paragraph
+            summary = f"{paragraphs[0]}\n\n[...]\n\n{paragraphs[-1]}"
+
+        if len(summary) > max_length:
+            summary = summary[:max_length] + "..."
+        return summary
+
+    # Strategy 4: Simple truncation as last resort
+    if len(content) > max_length:
+        return content[:max_length] + "... [truncated]"
+
+    return content
 
 
 @tool
@@ -645,6 +764,26 @@ def reporter_node(state: State, config: RunnableConfig):
     response_content = response.content
     logger.info(f"reporter response: {response_content}")
 
+    # Save completed research with full process data
+    research_topic = state.get("research_topic", "")
+    try:
+        # Convert current_plan to dict for storage
+        plan_dict = current_plan.model_dump() if hasattr(current_plan, 'model_dump') else {}
+        
+        save_completed_research(
+            thread_id=configurable.thread_id,
+            user_id=configurable.user_id,
+            research_topic=research_topic,
+            report_style=configurable.report_style,
+            final_report=response_content,
+            observations=observations,
+            current_plan=plan_dict,
+        )
+        logger.info(f"Saved completed research for thread {configurable.thread_id}")
+    except Exception as e:
+        logger.error(f"Failed to save completed research: {e}")
+        # Don't fail the entire research if saving fails
+
     return {"final_report": response_content}
 
 
@@ -678,13 +817,11 @@ async def _execute_agent_step(
 
     logger.info(f"Executing step: {current_step.title}, agent: {agent_name}")
 
-    # Format completed steps information
+    # Format completed steps information with intelligent summarization
     completed_steps_info = ""
     if completed_steps:
         completed_steps_info = "# Completed Research Steps\n\n"
-        for i, step in enumerate(completed_steps):
-            completed_steps_info += f"## Completed Step {i + 1}: {step.title}\n\n"
-            completed_steps_info += f"<finding>\n{step.execution_res}\n</finding>\n\n"
+        completed_steps_info += _format_completed_steps_with_summary(completed_steps)
 
     # Prepare the input for the agent with completed steps info
     agent_input = {

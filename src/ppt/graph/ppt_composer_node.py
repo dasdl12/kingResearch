@@ -28,6 +28,6 @@ def ppt_composer_node(state: PPTState):
     logger.info(f"ppt_content: {ppt_content}")
     # save the ppt content in a temp file
     temp_ppt_file_path = os.path.join(os.getcwd(), f"ppt_content_{uuid.uuid4()}.md")
-    with open(temp_ppt_file_path, "w") as f:
+    with open(temp_ppt_file_path, "w", encoding="utf-8") as f:
         f.write(ppt_content.content)
     return {"ppt_content": ppt_content, "ppt_file_path": temp_ppt_file_path}

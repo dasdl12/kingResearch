@@ -42,6 +42,8 @@ def get_recursion_limit(default: int = 25) -> int:
 class Configuration:
     """The configurable fields."""
 
+    thread_id: str = ""  # Thread ID for the conversation
+    user_id: Optional[str] = None  # User ID for multi-user support
     resources: list[Resource] = field(
         default_factory=list
     )  # Resources to be used for the research
