@@ -85,13 +85,12 @@ export function ResearchHistoryDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Tooltip title={t("title")} className="max-w-60">
-        <DialogTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <MessageSquareText />
-          </Button>
-        </DialogTrigger>
-      </Tooltip>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" className="gap-1.5">
+          <MessageSquareText className="h-4 w-4" />
+          <span className="text-sm">{t("title")}</span>
+        </Button>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[900px] max-h-[80vh]" showClose={false}>
         <DialogHeader>
           <div className="flex items-center justify-between">

@@ -63,7 +63,7 @@ export default function HomePage() {
     <div className="flex h-screen w-screen justify-center overscroll-none">
       <header className="fixed top-0 left-0 flex h-12 w-full items-center justify-between px-4">
         <Logo />
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           {user && (
             <div className="flex items-center gap-2 px-2">
               <span className="text-sm text-muted-foreground">
@@ -77,35 +77,41 @@ export default function HomePage() {
             </div>
           )}
           
-          <Tooltip title={t("starOnGitHub")}>
-            <Button variant="ghost" size="icon" asChild>
-              <Link
-                href="https://github.com/bytedance/deer-flow"
-                target="_blank"
-              >
-                <GithubOutlined />
-              </Link>
-            </Button>
-          </Tooltip>
+          <Button variant="ghost" size="sm" asChild>
+            <Link
+              href="https://github.com/bytedance/deer-flow"
+              target="_blank"
+              className="gap-1.5"
+            >
+              <GithubOutlined className="text-base" />
+              <span className="text-sm">GitHub</span>
+            </Link>
+          </Button>
+          
+          <div className="h-5 w-px bg-border opacity-50" />
+          
           <Suspense>
             <ResearchHistoryDialog />
           </Suspense>
+          
+          <div className="h-5 w-px bg-border opacity-50" />
+          
           <Suspense>
             <SettingsDialog />
           </Suspense>
           
+          <div className="h-5 w-px bg-border opacity-50" />
+          
           {user ? (
-            <Tooltip title="Sign Out">
-              <Button variant="ghost" size="icon" onClick={logout}>
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </Tooltip>
+            <Button variant="ghost" size="sm" onClick={logout} className="gap-1.5">
+              <LogOut className="h-4 w-4" />
+              <span className="text-sm">登出</span>
+            </Button>
           ) : (
-            <Tooltip title="Sign In">
-              <Button variant="ghost" size="icon" onClick={() => router.push("/auth")}>
-                <LogIn className="h-4 w-4" />
-              </Button>
-            </Tooltip>
+            <Button variant="ghost" size="sm" onClick={() => router.push("/auth")} className="gap-1.5">
+              <LogIn className="h-4 w-4" />
+              <span className="text-sm">登录</span>
+            </Button>
           )}
         </div>
       </header>

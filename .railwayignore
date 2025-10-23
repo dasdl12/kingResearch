@@ -1,0 +1,63 @@
+# Railway ignore file - files to exclude from deployment
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Tests
+tests/
+*.test.py
+test_*.py
+
+# Documentation (keep essential ones)
+*.md
+!README.md
+!DEPLOYMENT_GUIDE.md
+
+# Development files
+.env.local
+.env.development
+
+# Logs
+*.log
+debug.txt
+patch.txt
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Node modules (for backend, frontend has its own)
+node_modules/
+
+# Web directory (deployed separately)
+web/
+

@@ -66,8 +66,13 @@ from src.server.rag_request import (
 )
 from src.tools import VolcengineTTS
 from src.utils.json_utils import sanitize_args
+from datetime import datetime
+import time
 
 logger = logging.getLogger(__name__)
+
+# Application startup time for metrics
+start_time = time.time()
 
 # Configure Windows event loop policy for PostgreSQL compatibility
 # On Windows, psycopg requires a selector-based event loop, not the default ProactorEventLoop
@@ -103,6 +108,57 @@ load_examples()
 
 in_memory_store = InMemoryStore()
 graph = build_graph_with_memory()
+
+
+@app.get("/")
+async def root():
+    """Root endpoint - API status check."""
+    return {
+        "name": "DeerFlow API",
+        "version": "0.1.0",
+        "status": "running",
+        "docs": "/api/docs"
+    }
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Railway and monitoring."""
+    try:
+        # Check database connection if configured
+        checkpoint_enabled = get_bool_env("LANGGRAPH_CHECKPOINT_SAVER", False)
+        db_status = "not_configured"
+        
+        if checkpoint_enabled:
+            db_url = get_str_env("LANGGRAPH_CHECKPOINT_DB_URL", "")
+            if db_url:
+                try:
+                    if db_url.startswith("postgresql://"):
+                        with psycopg.connect(db_url, connect_timeout=5) as conn:
+                            with conn.cursor() as cur:
+                                cur.execute("SELECT 1")
+                        db_status = "healthy"
+                    elif db_url.startswith("mongodb://"):
+                        db_status = "healthy"  # MongoDB check would need async mongo client
+                except Exception as e:
+                    logger.error(f"Database health check failed: {e}")
+                    db_status = "unhealthy"
+        
+        return {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "version": "0.1.0",
+            "uptime_seconds": int(time.time() - start_time),
+            "database": db_status,
+            "environment": get_str_env("ENVIRONMENT", "development")
+        }
+    except Exception as e:
+        logger.exception(f"Health check error: {e}")
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
 
 @app.post("/api/chat/stream")

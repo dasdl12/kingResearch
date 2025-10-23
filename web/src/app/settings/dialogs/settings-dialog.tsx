@@ -95,13 +95,12 @@ export function SettingsDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Tooltip title={tCommon('settings')}>
-        <DialogTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <Settings />
-          </Button>
-        </DialogTrigger>
-      </Tooltip>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" className="gap-1.5">
+          <Settings className="h-4 w-4" />
+          <span className="text-sm">{tCommon('settings')}</span>
+        </Button>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[850px]">
         <DialogHeader>
           <DialogTitle>{t('title')}</DialogTitle>
