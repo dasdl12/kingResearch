@@ -10,16 +10,13 @@ import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n.ts');
 
-/** @type {import("next").NextConfig} */
-
 // DeerFlow leverages **Turbopack** during development for faster builds and a smoother developer experience.
 // However, in production, **Webpack** is used instead.
 //
 // This decision is based on the current recommendation to avoid using Turbopack for critical projects, as it
 // is still evolving and may not yet be fully stable for production environments.
 
-const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
-
+/** @type {import("next").NextConfig} */
 const config = {
   // For development mode
   turbopack: {
@@ -44,6 +41,7 @@ const config = {
   output: "standalone",
 
   async rewrites() {
+    const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000';
     return [
       {
         source: "/api/:path*",
