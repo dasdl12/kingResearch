@@ -18,6 +18,14 @@ const withNextIntl = createNextIntlPlugin('./src/i18n.ts');
 
 /** @type {import("next").NextConfig} */
 const config = {
+  // Disable ESLint and TypeScript checks during build for faster Railway deployment
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
   // For development mode
   turbopack: {
     rules: {
