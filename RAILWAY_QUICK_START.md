@@ -50,7 +50,7 @@ LANGGRAPH_CHECKPOINT_SAVER=true
 LANGGRAPH_CHECKPOINT_DB_URL=${{Postgres.DATABASE_URL}}
 
 # === JWT 密钥（必需）===
-JWT_SECRET_KEY=<粘贴你在准备工作中生成的密钥>
+JWT_SECRET_KEY=StxppAjus-oAB7rq_jd-aX4paGC_Tj3R5VHDycQBiAI
 
 # === CORS（必需）===
 ALLOWED_ORIGINS=https://*.railway.app
