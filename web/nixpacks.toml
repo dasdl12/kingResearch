@@ -1,0 +1,20 @@
+[phases.setup]
+
+[phases.install]
+cmds = [
+  "npm i -g corepack@latest",
+  "corepack enable", 
+  "corepack prepare --activate",
+  "pnpm install --frozen-lockfile --prefer-offline"
+]
+
+[phases.build]
+cmds = [
+  "pnpm run build",
+  "cp -r messages .next/standalone/messages"
+]
+
+[start]
+# Use the correct start command for standalone mode
+cmd = "node .next/standalone/server.js"
+
