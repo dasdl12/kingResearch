@@ -777,9 +777,14 @@ async def config():
 async def register(request: RegisterRequest):
     """User registration endpoint."""
     try:
-        db_uri = get_str_env("LANGGRAPH_CHECKPOINT_DB_URL")
+        db_url = get_str_env("LANGGRAPH_CHECKPOINT_DB_URL")
         
-        with psycopg.connect(db_uri) as conn:
+        # Add SSL mode to connection URL if not already present (required for Railway)
+        if "sslmode" not in db_url:
+            separator = "&" if "?" in db_url else "?"
+            db_url = f"{db_url}{separator}sslmode=require"
+        
+        with psycopg.connect(db_url) as conn:
             with conn.cursor() as cur:
                 # Check if username or email already exists
                 cur.execute(
@@ -826,9 +831,14 @@ async def register(request: RegisterRequest):
 async def login(request: LoginRequest):
     """User login endpoint."""
     try:
-        db_uri = get_str_env("LANGGRAPH_CHECKPOINT_DB_URL")
+        db_url = get_str_env("LANGGRAPH_CHECKPOINT_DB_URL")
         
-        with psycopg.connect(db_uri) as conn:
+        # Add SSL mode to connection URL if not already present (required for Railway)
+        if "sslmode" not in db_url:
+            separator = "&" if "?" in db_url else "?"
+            db_url = f"{db_url}{separator}sslmode=require"
+        
+        with psycopg.connect(db_url) as conn:
             with conn.cursor() as cur:
                 # Query user (support username or email login)
                 cur.execute(
@@ -884,9 +894,14 @@ async def login(request: LoginRequest):
 async def get_user_info(user_id: str = Depends(get_current_user)):
     """Get current user information."""
     try:
-        db_uri = get_str_env("LANGGRAPH_CHECKPOINT_DB_URL")
+        db_url = get_str_env("LANGGRAPH_CHECKPOINT_DB_URL")
         
-        with psycopg.connect(db_uri) as conn:
+        # Add SSL mode to connection URL if not already present (required for Railway)
+        if "sslmode" not in db_url:
+            separator = "&" if "?" in db_url else "?"
+            db_url = f"{db_url}{separator}sslmode=require"
+        
+        with psycopg.connect(db_url) as conn:
             with conn.cursor() as cur:
                 cur.execute(
                     """

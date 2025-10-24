@@ -1,16 +1,3 @@
-后端运行是正常的@https://kingresearch-production.up.railway.app/ 
-打开输出{"name":"DeerFlow API","version":"0.1.0","status":"running","docs":"/api/docs"}
-variable是LANGGRAPH_CHECKPOINT_SAVER="true"
-LANGGRAPH_CHECKPOINT_DB_URL="${{Postgres.DATABASE_URL}}"
-JWT_SECRET_KEY="-XTTNxwPhkWvBbmpqA8NiZkJCx2U6pNg4I24YH_N31o"
-ALLOWED_ORIGINS="https://kingresearch.up.railway.app"
-SEARCH_API="tavily"
-TAVILY_API_KEY="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"
-ENVIRONMENT="production"
-LOG_LEVEL="info"
-前端运行也正常@https://kingresearch.up.railway.app/chat 
-variable是NEXT_TELEMETRY_DISABLED="1"
-SKIP_ENV_VALIDATION="1"
-NEXT_PUBLIC_API_URL="https://kingresearch-production.up.railway.app/api/"
-NODE_ENV="production"
-但是进入前端页面中发现根本没有连接上后端
+id	thread_id	user_id	research_topic	report_style	final_report	observations	plan	is_completed	created_at	completed_at	ts	
+e76466d9-5b49-4102-a3fb-6f462b947dd6	5kTj9MV-KMu8_lgA1w1gJ	0e89ca6b-13f5-401f-9f7b-02e572322082	金山云集团	strategic_investment	# 战略投资分析报告：金山云集团（KC.US / 3896.HK）XXX	t	2025-10-24 06:08:31.5572+00	2025-10-24 06:08:31.5565+00	2025-10-24 06:08:31.5565+00	
+1743b1de-caf5-49be-888b-91d135c350ec	VJm9j05JsOHffOBPQ1det	NULL	小米集团	strategic_investment	# 小米集团（1810.HK）战略投资深度分析报告： XXX	t	2025-10-24 06:15:50.544609+00	2025-10-24 06:15:50.543787+00	2025-10-24 06:15:50.543787+00	

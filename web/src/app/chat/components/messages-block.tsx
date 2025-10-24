@@ -100,15 +100,17 @@ export function MessagesBlock({ className }: { className?: string }) {
               onSend={handleSend}
             />
           )}
-          {/* Mascot positioned above input box, with bottom 10% under the dialog */}
+          {/* Mascot positioned above input box, fixed size and tight positioning */}
           <img 
             src="/mascot.gif" 
             alt="Mascot"
-            className="absolute left-3/4 w-[calc(100%/10)] h-auto pointer-events-none"
+            className="absolute left-3/4 pointer-events-none"
             style={{
-              bottom: 'calc(100% - 18%)',
-              transform: 'translateX(-50%)',
-              zIndex: 15, // 高于 ScrollContainer 的阴影层 (z-index: 10)，但仍在 InputBox 下方
+              bottom: '100%',
+              transform: 'translate(-50%, 12px)',
+              width: '80px',
+              height: 'auto',
+              zIndex: 15,
             }}
           />
           <div className="relative h-full w-full" style={{ zIndex: 20 }}>

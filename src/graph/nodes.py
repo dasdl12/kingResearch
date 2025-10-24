@@ -316,28 +316,29 @@ def planner_node(
             }
         ]
 
+    # Deep thinking mode controls model selection
     if configurable.enable_deep_thinking:
         llm = get_llm_by_type("reasoning")
-    elif AGENT_LLM_MAP["planner"] == "basic":
+        use_streaming = True
+    else:
         llm = get_llm_by_type("basic").with_structured_output(
             Plan,
             method="json_mode",
         )
-    else:
-        llm = get_llm_by_type(AGENT_LLM_MAP["planner"])
+        use_streaming = False
 
     # if the plan iterations is greater than the max plan iterations, return the reporter node
     if plan_iterations >= configurable.max_plan_iterations:
         return Command(goto="reporter")
 
     full_response = ""
-    if AGENT_LLM_MAP["planner"] == "basic" and not configurable.enable_deep_thinking:
-        response = llm.invoke(messages)
-        full_response = response.model_dump_json(indent=4, exclude_none=True)
-    else:
+    if use_streaming:
         response = llm.stream(messages)
         for chunk in response:
             full_response += chunk.content
+    else:
+        response = llm.invoke(messages)
+        full_response = response.model_dump_json(indent=4, exclude_none=True)
     logger.debug(f"Current state messages: {state['messages']}")
     logger.info(f"Planner response: {full_response}")
 
