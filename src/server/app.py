@@ -918,11 +918,22 @@ async def get_researches(
 ):
     """Get user's completed research list."""
     try:
+        logger.info(f"Getting researches for user {user_id}, limit={limit}, offset={offset}")
+        
+        # Check if checkpoint is enabled
+        checkpoint_enabled = get_bool_env("LANGGRAPH_CHECKPOINT_SAVER", False)
+        if not checkpoint_enabled:
+            logger.warning("Checkpoint saver is disabled, returning empty list")
+            return {"data": []}
+        
         researches = get_user_researches(user_id, limit, offset)
+        logger.info(f"Successfully fetched {len(researches)} researches for user {user_id}")
         return {"data": researches}
     except Exception as e:
-        logger.exception(f"Error getting researches: {str(e)}")
-        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR_DETAIL)
+        logger.exception(f"❌ Error getting researches for user {user_id}: {str(e)}")
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(f"Error details: {repr(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get researches: {str(e)}")
 
 
 @app.get("/api/research/{thread_id}")
