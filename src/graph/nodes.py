@@ -494,6 +494,15 @@ def coordinator_node(
         clarification_rounds = state.get("clarification_rounds", 0)
         clarification_history = state.get("clarification_history", [])
         max_clarification_rounds = state.get("max_clarification_rounds", 3)
+        
+        # Initialize topic tracking variables
+        initial_topic = state.get("research_topic", "")
+        clarified_topic = state.get("clarified_research_topic", "") or initial_topic
+        
+        # For continuing clarification, build up clarified topic from history
+        if clarification_rounds > 0 and clarification_history:
+            # Combine initial topic with clarification history
+            clarified_topic = f"{initial_topic} - " + " - ".join(clarification_history)
 
         # Prepare the messages for the coordinator
         messages = apply_prompt_template("coordinator", state)
@@ -718,6 +727,7 @@ def coordinator_node(
     if not enable_clarification:
         clarification_rounds = 0
         clarification_history = []
+        clarified_topic = research_topic  # Initialize for legacy mode
     
     clarified_research_topic_value = clarified_topic or research_topic
 
