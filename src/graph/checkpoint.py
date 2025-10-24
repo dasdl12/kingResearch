@@ -83,7 +83,14 @@ class ChatStreamManager:
         """Initialize PostgreSQL connection and create tables if needed."""
 
         try:
-            self.postgres_conn = psycopg.connect(self.db_uri, row_factory=dict_row)
+            # Add SSL mode to connection URL if not already present (required for Railway)
+            db_uri = self.db_uri
+            if "sslmode" not in db_uri:
+                separator = "&" if "?" in db_uri else "?"
+                db_uri = f"{db_uri}{separator}sslmode=require"
+                self.logger.info("Added sslmode=require to PostgreSQL connection URL")
+            
+            self.postgres_conn = psycopg.connect(db_uri, row_factory=dict_row)
             self.logger.info("Successfully connected to PostgreSQL")
             self._create_users_table()
             self._create_chat_streams_table()

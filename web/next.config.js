@@ -53,7 +53,7 @@ const config = {
     return [
       {
         source: "/api/:path*",
-        destination: `${apiBase}/api/:path*`,
+        destination: `${apiBase}:path*`,
       },
     ];
   },

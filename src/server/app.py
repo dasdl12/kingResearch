@@ -123,6 +123,12 @@ async def startup_event():
         if checkpoint_enabled and db_url and db_url.startswith("postgresql://"):
             logger.info("Checking database tables...")
             
+            # Add SSL mode to connection URL if not already present (required for Railway)
+            if "sslmode" not in db_url:
+                separator = "&" if "?" in db_url else "?"
+                db_url = f"{db_url}{separator}sslmode=require"
+                logger.info("Added sslmode=require to PostgreSQL connection URL")
+            
             from pathlib import Path
             migrations_dir = Path(__file__).parent.parent.parent / "migrations"
             
@@ -481,6 +487,11 @@ async def _astream_workflow_generator(
     if checkpoint_saver and checkpoint_url != "":
         if checkpoint_url.startswith("postgresql://"):
             logger.info("start async postgres checkpointer.")
+            # Add SSL mode to connection URL if not already present (required for Railway)
+            if "sslmode" not in checkpoint_url:
+                separator = "&" if "?" in checkpoint_url else "?"
+                checkpoint_url = f"{checkpoint_url}{separator}sslmode=require"
+                logger.info("Added sslmode=require to PostgreSQL connection URL")
             async with AsyncConnectionPool(
                 checkpoint_url, kwargs=connection_kwargs
             ) as conn:
@@ -918,22 +929,11 @@ async def get_researches(
 ):
     """Get user's completed research list."""
     try:
-        logger.info(f"Getting researches for user {user_id}, limit={limit}, offset={offset}")
-        
-        # Check if checkpoint is enabled
-        checkpoint_enabled = get_bool_env("LANGGRAPH_CHECKPOINT_SAVER", False)
-        if not checkpoint_enabled:
-            logger.warning("Checkpoint saver is disabled, returning empty list")
-            return {"data": []}
-        
         researches = get_user_researches(user_id, limit, offset)
-        logger.info(f"Successfully fetched {len(researches)} researches for user {user_id}")
         return {"data": researches}
     except Exception as e:
-        logger.exception(f"❌ Error getting researches for user {user_id}: {str(e)}")
-        logger.error(f"Error type: {type(e).__name__}")
-        logger.error(f"Error details: {repr(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get researches: {str(e)}")
+        logger.exception(f"Error getting researches: {str(e)}")
+        raise HTTPException(status_code=500, detail=INTERNAL_SERVER_ERROR_DETAIL)
 
 
 @app.get("/api/research/{thread_id}")
