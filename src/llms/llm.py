@@ -79,17 +79,13 @@ def _create_llm_use_conf(llm_type: LLMType, conf: Dict[str, Any]) -> BaseChatMod
         from src.config.loader import get_int_env
         merged_conf["max_retries"] = get_int_env("LLM_MAX_RETRIES", 3)
     
-    # Add timeout configuration for long-running AI tasks
-    if "timeout" not in merged_conf:
+    # Add request_timeout configuration for long-running AI tasks
+    # ChatOpenAI expects a number (seconds) not a Timeout object
+    if "request_timeout" not in merged_conf and "timeout" not in merged_conf:
         from src.config.loader import get_int_env
         # Default: 180s (3 minutes) for AI tasks, can be overridden via LLM_TIMEOUT env var
         timeout_seconds = get_int_env("LLM_TIMEOUT", 180)
-        merged_conf["timeout"] = httpx.Timeout(
-            connect=10.0,
-            read=float(timeout_seconds),
-            write=30.0,
-            pool=10.0
-        )
+        merged_conf["request_timeout"] = timeout_seconds
 
     # Handle SSL verification settings
     verify_ssl = merged_conf.pop("verify_ssl", True)
