@@ -3,8 +3,10 @@
 
 import json
 import logging
+import time
 import uuid
 from datetime import datetime
+from functools import wraps
 from typing import List, Optional, Tuple
 
 import psycopg
@@ -12,7 +14,47 @@ from langgraph.store.memory import InMemoryStore
 from psycopg.rows import dict_row
 from pymongo import MongoClient
 
-from src.config.loader import get_bool_env, get_str_env
+from src.config.loader import get_bool_env, get_int_env, get_str_env
+
+logger = logging.getLogger(__name__)
+
+
+def retry_on_db_error(max_retries: int = 3, delay: float = 1.0):
+    """
+    Decorator to retry database operations on connection errors.
+    
+    Args:
+        max_retries: Maximum number of retry attempts (from env DB_MAX_RETRIES or default 3)
+        delay: Initial delay between retries in seconds (exponential backoff)
+    """
+    # Allow override from environment
+    max_retries = get_int_env("DB_MAX_RETRIES", max_retries)
+    
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            last_exception = None
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except (psycopg.OperationalError, psycopg.InterfaceError) as e:
+                    last_exception = e
+                    if attempt < max_retries - 1:
+                        wait_time = delay * (2 ** attempt)  # Exponential backoff
+                        logger.warning(
+                            f"Database operation failed (attempt {attempt + 1}/{max_retries}): {e}. "
+                            f"Retrying in {wait_time}s..."
+                        )
+                        time.sleep(wait_time)
+                    else:
+                        logger.error(f"Database operation failed after {max_retries} attempts: {e}")
+                except Exception as e:
+                    # Don't retry on non-connection errors
+                    logger.error(f"Non-retryable database error: {e}")
+                    raise
+            raise last_exception
+        return wrapper
+    return decorator
 
 
 class ChatStreamManager:
@@ -83,15 +125,36 @@ class ChatStreamManager:
         """Initialize PostgreSQL connection and create tables if needed."""
 
         try:
-            # Add SSL mode to connection URL if not already present (required for Railway)
+            # Add SSL mode and connection parameters to connection URL
             db_uri = self.db_uri
+            
+            # Get connection parameters from environment or use defaults
+            from src.config.loader import get_int_env
+            connect_timeout = get_int_env("DB_CONNECT_TIMEOUT", 60)
+            keepalives_idle = get_int_env("DB_KEEPALIVES_IDLE", 30)
+            keepalives_interval = get_int_env("DB_KEEPALIVES_INTERVAL", 10)
+            keepalives_count = get_int_env("DB_KEEPALIVES_COUNT", 5)
+            
+            # Build connection parameters
+            params = []
             if "sslmode" not in db_uri:
-                separator = "&" if "?" in db_uri else "?"
-                db_uri = f"{db_uri}{separator}sslmode=require"
+                params.append("sslmode=require")
                 self.logger.info("Added sslmode=require to PostgreSQL connection URL")
             
+            # Add connection stability parameters
+            params.extend([
+                f"connect_timeout={connect_timeout}",
+                "keepalives=1",
+                f"keepalives_idle={keepalives_idle}",
+                f"keepalives_interval={keepalives_interval}",
+                f"keepalives_count={keepalives_count}"
+            ])
+            
+            separator = "&" if "?" in db_uri else "?"
+            db_uri = f"{db_uri}{separator}" + "&".join(params)
+            
             self.postgres_conn = psycopg.connect(db_uri, row_factory=dict_row)
-            self.logger.info("Successfully connected to PostgreSQL")
+            self.logger.info("Successfully connected to PostgreSQL with enhanced stability settings")
             self._create_users_table()
             self._create_chat_streams_table()
             self._create_research_replays_table()

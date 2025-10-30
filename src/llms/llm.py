@@ -76,7 +76,20 @@ def _create_llm_use_conf(llm_type: LLMType, conf: Dict[str, Any]) -> BaseChatMod
 
     # Add max_retries to handle rate limit errors
     if "max_retries" not in merged_conf:
-        merged_conf["max_retries"] = 3
+        from src.config.loader import get_int_env
+        merged_conf["max_retries"] = get_int_env("LLM_MAX_RETRIES", 3)
+    
+    # Add timeout configuration for long-running AI tasks
+    if "timeout" not in merged_conf:
+        from src.config.loader import get_int_env
+        # Default: 180s (3 minutes) for AI tasks, can be overridden via LLM_TIMEOUT env var
+        timeout_seconds = get_int_env("LLM_TIMEOUT", 180)
+        merged_conf["timeout"] = httpx.Timeout(
+            connect=10.0,
+            read=float(timeout_seconds),
+            write=30.0,
+            pool=10.0
+        )
 
     # Handle SSL verification settings
     verify_ssl = merged_conf.pop("verify_ssl", True)

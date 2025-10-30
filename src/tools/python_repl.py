@@ -12,17 +12,36 @@ from .decorators import log_io
 
 
 def _is_python_repl_enabled() -> bool:
-    """Check if Python REPL tool is enabled from configuration."""
+    """Check if Python REPL tool is enabled from configuration.
+    
+    Controlled by ENABLE_PYTHON_REPL environment variable.
+    Set to 'true', '1', 'yes', or 'on' to enable.
+    Default: disabled (for security in production)
+    """
     # Check environment variable first
     env_enabled = os.getenv("ENABLE_PYTHON_REPL", "false").lower()
-    if env_enabled in ("true", "1", "yes", "on"):
-        return True
-    return False
+    is_enabled = env_enabled in ("true", "1", "yes", "on")
+    
+    # Log status on first check
+    if not hasattr(_is_python_repl_enabled, '_logged'):
+        logger = logging.getLogger(__name__)
+        if is_enabled:
+            logger.info("Python REPL tool is ENABLED via ENABLE_PYTHON_REPL environment variable")
+        else:
+            logger.info(
+                "Python REPL tool is DISABLED (default). "
+                "Set ENABLE_PYTHON_REPL=true to enable for data analysis tasks."
+            )
+        _is_python_repl_enabled._logged = True
+    
+    return is_enabled
 
 
-# Initialize REPL and logger
-repl: Optional[PythonREPL] = PythonREPL() if _is_python_repl_enabled() else None
+# Initialize logger first
 logger = logging.getLogger(__name__)
+
+# Initialize REPL only if enabled
+repl: Optional[PythonREPL] = PythonREPL() if _is_python_repl_enabled() else None
 
 
 @tool

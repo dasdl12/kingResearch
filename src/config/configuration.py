@@ -15,11 +15,11 @@ from src.rag.retriever import Resource
 logger = logging.getLogger(__name__)
 
 
-def get_recursion_limit(default: int = 25) -> int:
+def get_recursion_limit(default: int = 50) -> int:
     """Get the recursion limit from environment variable or use default.
 
     Args:
-        default: Default recursion limit if environment variable is not set or invalid
+        default: Default recursion limit if environment variable is not set or invalid (increased to 50 for complex tasks)
 
     Returns:
         int: The recursion limit to use
@@ -33,6 +33,30 @@ def get_recursion_limit(default: int = 25) -> int:
     else:
         logger.warning(
             f"AGENT_RECURSION_LIMIT value '{env_value_str}' (parsed as {parsed_limit}) is not positive. "
+            f"Using default value {default}."
+        )
+        return default
+
+
+def get_max_tool_calls(default: int = 40) -> int:
+    """Get the maximum tool calls limit from environment variable or use default.
+    
+    This prevents infinite loops in agent execution.
+
+    Args:
+        default: Default max tool calls if environment variable is not set or invalid
+
+    Returns:
+        int: The max tool calls limit to use
+    """
+    parsed_limit = get_int_env("AGENT_MAX_TOOL_CALLS", default)
+
+    if parsed_limit > 0:
+        logger.info(f"Max tool calls limit set to: {parsed_limit}")
+        return parsed_limit
+    else:
+        logger.warning(
+            f"AGENT_MAX_TOOL_CALLS value (parsed as {parsed_limit}) is not positive. "
             f"Using default value {default}."
         )
         return default
