@@ -547,8 +547,12 @@ async def _astream_workflow_generator(
                     f"keepalives_count={keepalives_count}, "
                     f"connect_timeout={connect_timeout}s"
                 )
+                # Log sanitized conninfo for debugging (without password)
+                import re
+                sanitized_conninfo = re.sub(r'password=[^\s]+', 'password=***', conninfo)
+                logger.info(f"Generated conninfo (sanitized): {sanitized_conninfo}")
             except Exception as e:
-                logger.error(f"Failed to build conninfo: {e}")
+                logger.error(f"Failed to build conninfo: {e}", exc_info=True)
                 # Fallback to URL without keepalive parameters
                 conninfo = checkpoint_url_with_ssl
                 logger.warning("Falling back to connection without keepalive parameters")
@@ -561,15 +565,24 @@ async def _astream_workflow_generator(
             }
             
             # Create connection pool with enhanced stability settings
+            # Note: pool timeout must be greater than connect_timeout to allow connection establishment
+            pool_timeout = connect_timeout + 30  # Add 30s buffer for pool operations
+            
+            logger.info(
+                f"Creating AsyncConnectionPool with: "
+                f"min_size=1, max_size=10, timeout={pool_timeout}s, "
+                f"max_lifetime=3600s, max_idle=600s"
+            )
+            
             async with AsyncConnectionPool(
                 conninfo,
                 kwargs=connection_kwargs,
-                min_size=1,           # Minimum connections in pool
-                max_size=10,          # Maximum connections in pool
-                timeout=30,           # Timeout for acquiring connection from pool
-                max_lifetime=3600,    # Maximum connection lifetime (1 hour)
-                max_idle=600,         # Maximum idle time before reconnection (10 minutes)
-                reconnect_timeout=10, # Reconnection timeout
+                min_size=1,              # Minimum connections in pool
+                max_size=10,             # Maximum connections in pool
+                timeout=pool_timeout,    # Timeout for acquiring connection (connect_timeout + buffer)
+                max_lifetime=3600,       # Maximum connection lifetime (1 hour)
+                max_idle=600,            # Maximum idle time before reconnection (10 minutes)
+                reconnect_timeout=10,    # Reconnection timeout
                 check=AsyncConnectionPool.check_connection  # Connection health check
             ) as conn:
                 checkpointer = AsyncPostgresSaver(conn)
