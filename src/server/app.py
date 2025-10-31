@@ -557,43 +557,22 @@ async def _astream_workflow_generator(
                 conninfo = checkpoint_url_with_ssl
                 logger.warning("Falling back to connection without keepalive parameters")
             
-            # Build connection kwargs (only for psycopg-specific parameters)
-            connection_kwargs = {
-                "autocommit": True,
-                "row_factory": "dict_row",
-                "prepare_threshold": 0,
-            }
+            # Use AsyncPostgresSaver.from_conn_string for better connection management
+            # This allows LangGraph to manage the connection pool internally
+            # Our keepalive and timeout settings are still applied via conninfo
+            logger.info("Creating AsyncPostgresSaver with managed connection pool")
             
-            # Create connection pool with enhanced stability settings
-            # Note: pool timeout must be greater than connect_timeout to allow connection establishment
-            pool_timeout = connect_timeout + 30  # Add 30s buffer for pool operations
+            checkpointer = AsyncPostgresSaver.from_conn_string(conninfo)
+            await checkpointer.setup()
+            graph.checkpointer = checkpointer
+            graph.store = in_memory_store
             
-            logger.info(
-                f"Creating AsyncConnectionPool with: "
-                f"min_size=1, max_size=10, timeout={pool_timeout}s, "
-                f"max_lifetime=3600s, max_idle=600s"
-            )
+            logger.info("AsyncPostgresSaver initialized successfully with keepalive settings")
             
-            async with AsyncConnectionPool(
-                conninfo,
-                kwargs=connection_kwargs,
-                min_size=1,              # Minimum connections in pool
-                max_size=10,             # Maximum connections in pool
-                timeout=pool_timeout,    # Timeout for acquiring connection (connect_timeout + buffer)
-                max_lifetime=3600,       # Maximum connection lifetime (1 hour)
-                max_idle=600,            # Maximum idle time before reconnection (10 minutes)
-                reconnect_timeout=10,    # Reconnection timeout
-                check=AsyncConnectionPool.check_connection  # Connection health check
-            ) as conn:
-                checkpointer = AsyncPostgresSaver(conn)
-                await checkpointer.setup()
-                graph.checkpointer = checkpointer
-                graph.store = in_memory_store
-                logger.info("AsyncPostgresSaver initialized with enhanced connection pool")
-                async for event in _stream_graph_events(
-                    graph, workflow_input, workflow_config, thread_id
-                ):
-                    yield event
+            async for event in _stream_graph_events(
+                graph, workflow_input, workflow_config, thread_id
+            ):
+                yield event
 
         if checkpoint_url.startswith("mongodb://"):
             logger.info("start async mongodb checkpointer.")
