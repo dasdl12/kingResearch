@@ -508,12 +508,7 @@ async def _astream_workflow_generator(
 
     checkpoint_saver = get_bool_env("LANGGRAPH_CHECKPOINT_SAVER", False)
     checkpoint_url = get_str_env("LANGGRAPH_CHECKPOINT_DB_URL", "")
-    # Handle checkpointer if configured
-    connection_kwargs = {
-        "autocommit": True,
-        "row_factory": "dict_row",
-        "prepare_threshold": 0,
-    }
+    
     if checkpoint_saver and checkpoint_url != "":
         if checkpoint_url.startswith("postgresql://"):
             logger.info("start async postgres checkpointer.")
@@ -525,26 +520,25 @@ async def _astream_workflow_generator(
             keepalives_interval = get_int_env("DB_KEEPALIVES_INTERVAL", 10)
             keepalives_count = get_int_env("DB_KEEPALIVES_COUNT", 5)
             
-            # Build connection URL with enhanced stability parameters
-            checkpoint_url_enhanced = checkpoint_url
-            
-            # Add SSL mode if not present (required for Railway)
-            if "sslmode" not in checkpoint_url_enhanced:
-                separator = "&" if "?" in checkpoint_url_enhanced else "?"
-                checkpoint_url_enhanced = f"{checkpoint_url_enhanced}{separator}sslmode=require"
+            # Build connection URL with SSL mode
+            checkpoint_url_with_ssl = checkpoint_url
+            if "sslmode" not in checkpoint_url_with_ssl:
+                separator = "&" if "?" in checkpoint_url_with_ssl else "?"
+                checkpoint_url_with_ssl = f"{checkpoint_url_with_ssl}{separator}sslmode=require"
                 logger.info("Added sslmode=require to PostgreSQL connection URL")
-            else:
-                separator = "&"
             
-            # Add keepalive and timeout parameters
-            checkpoint_url_enhanced += (
-                f"{separator}"
-                f"keepalives=1&"
-                f"keepalives_idle={keepalives_idle}&"
-                f"keepalives_interval={keepalives_interval}&"
-                f"keepalives_count={keepalives_count}&"
-                f"connect_timeout={connect_timeout}"
-            )
+            # Build connection kwargs with stability parameters
+            # Note: keepalive params go in conninfo string, not kwargs
+            connection_kwargs = {
+                "autocommit": True,
+                "row_factory": "dict_row",
+                "prepare_threshold": 0,
+                "keepalives": 1,
+                "keepalives_idle": keepalives_idle,
+                "keepalives_interval": keepalives_interval,
+                "keepalives_count": keepalives_count,
+                "connect_timeout": connect_timeout,
+            }
             
             logger.info(
                 f"PostgreSQL connection configured with: "
@@ -556,7 +550,7 @@ async def _astream_workflow_generator(
             
             # Create connection pool with enhanced stability settings
             async with AsyncConnectionPool(
-                checkpoint_url_enhanced,
+                checkpoint_url_with_ssl,
                 kwargs=connection_kwargs,
                 min_size=1,           # Minimum connections in pool
                 max_size=10,          # Maximum connections in pool
