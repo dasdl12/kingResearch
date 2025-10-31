@@ -562,17 +562,17 @@ async def _astream_workflow_generator(
             # Our keepalive and timeout settings are still applied via conninfo
             logger.info("Creating AsyncPostgresSaver with managed connection pool")
             
-            checkpointer = AsyncPostgresSaver.from_conn_string(conninfo)
-            await checkpointer.setup()
-            graph.checkpointer = checkpointer
-            graph.store = in_memory_store
-            
-            logger.info("AsyncPostgresSaver initialized successfully with keepalive settings")
-            
-            async for event in _stream_graph_events(
-                graph, workflow_input, workflow_config, thread_id
-            ):
-                yield event
+            async with AsyncPostgresSaver.from_conn_string(conninfo) as checkpointer:
+                await checkpointer.setup()
+                graph.checkpointer = checkpointer
+                graph.store = in_memory_store
+                
+                logger.info("AsyncPostgresSaver initialized successfully with keepalive settings")
+                
+                async for event in _stream_graph_events(
+                    graph, workflow_input, workflow_config, thread_id
+                ):
+                    yield event
 
         if checkpoint_url.startswith("mongodb://"):
             logger.info("start async mongodb checkpointer.")
