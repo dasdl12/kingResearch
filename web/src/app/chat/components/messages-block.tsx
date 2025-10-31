@@ -107,7 +107,7 @@ export function MessagesBlock({ className }: { className?: string }) {
             className="absolute left-3/4 pointer-events-none"
             style={{
               bottom: '100%',
-              transform: 'translate(-50%, 27px)',
+              transform: 'translate(-50%, 30px)',
               width: '80px',
               height: 'auto',
               zIndex: 15,

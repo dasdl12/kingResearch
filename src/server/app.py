@@ -409,13 +409,43 @@ async def _stream_graph_events(
                 message_chunk, message_metadata, thread_id, agent
             ):
                 yield event
+    except psycopg.OperationalError as e:
+        # Database connection errors - log with more details
+        logger.error(
+            f"Database connection error during graph execution for thread {thread_id}: {e}",
+            exc_info=True
+        )
+        yield _make_event(
+            "error",
+            {
+                "thread_id": thread_id,
+                "error": "Database connection error. The research may be incomplete but will continue.",
+                "error_type": "database_connection",
+            },
+        )
+    except psycopg.InterfaceError as e:
+        # Database interface errors
+        logger.error(
+            f"Database interface error during graph execution for thread {thread_id}: {e}",
+            exc_info=True
+        )
+        yield _make_event(
+            "error",
+            {
+                "thread_id": thread_id,
+                "error": "Database interface error. The research may be incomplete but will continue.",
+                "error_type": "database_interface",
+            },
+        )
     except Exception as e:
-        logger.exception("Error during graph execution")
+        # General errors
+        logger.exception(f"Unexpected error during graph execution for thread {thread_id}")
         yield _make_event(
             "error",
             {
                 "thread_id": thread_id,
                 "error": "Error during graph execution",
+                "error_type": "general",
             },
         )
 
@@ -487,18 +517,60 @@ async def _astream_workflow_generator(
     if checkpoint_saver and checkpoint_url != "":
         if checkpoint_url.startswith("postgresql://"):
             logger.info("start async postgres checkpointer.")
-            # Add SSL mode to connection URL if not already present (required for Railway)
-            if "sslmode" not in checkpoint_url:
-                separator = "&" if "?" in checkpoint_url else "?"
-                checkpoint_url = f"{checkpoint_url}{separator}sslmode=require"
+            
+            # Get connection stability parameters from environment
+            from src.config.loader import get_int_env
+            connect_timeout = get_int_env("DB_CONNECT_TIMEOUT", 60)
+            keepalives_idle = get_int_env("DB_KEEPALIVES_IDLE", 30)
+            keepalives_interval = get_int_env("DB_KEEPALIVES_INTERVAL", 10)
+            keepalives_count = get_int_env("DB_KEEPALIVES_COUNT", 5)
+            
+            # Build connection URL with enhanced stability parameters
+            checkpoint_url_enhanced = checkpoint_url
+            
+            # Add SSL mode if not present (required for Railway)
+            if "sslmode" not in checkpoint_url_enhanced:
+                separator = "&" if "?" in checkpoint_url_enhanced else "?"
+                checkpoint_url_enhanced = f"{checkpoint_url_enhanced}{separator}sslmode=require"
                 logger.info("Added sslmode=require to PostgreSQL connection URL")
+            else:
+                separator = "&"
+            
+            # Add keepalive and timeout parameters
+            checkpoint_url_enhanced += (
+                f"{separator}"
+                f"keepalives=1&"
+                f"keepalives_idle={keepalives_idle}&"
+                f"keepalives_interval={keepalives_interval}&"
+                f"keepalives_count={keepalives_count}&"
+                f"connect_timeout={connect_timeout}"
+            )
+            
+            logger.info(
+                f"PostgreSQL connection configured with: "
+                f"keepalives_idle={keepalives_idle}s, "
+                f"keepalives_interval={keepalives_interval}s, "
+                f"keepalives_count={keepalives_count}, "
+                f"connect_timeout={connect_timeout}s"
+            )
+            
+            # Create connection pool with enhanced stability settings
             async with AsyncConnectionPool(
-                checkpoint_url, kwargs=connection_kwargs
+                checkpoint_url_enhanced,
+                kwargs=connection_kwargs,
+                min_size=1,           # Minimum connections in pool
+                max_size=10,          # Maximum connections in pool
+                timeout=30,           # Timeout for acquiring connection from pool
+                max_lifetime=3600,    # Maximum connection lifetime (1 hour)
+                max_idle=600,         # Maximum idle time before reconnection (10 minutes)
+                reconnect_timeout=10, # Reconnection timeout
+                check=AsyncConnectionPool.check_connection  # Connection health check
             ) as conn:
                 checkpointer = AsyncPostgresSaver(conn)
                 await checkpointer.setup()
                 graph.checkpointer = checkpointer
                 graph.store = in_memory_store
+                logger.info("AsyncPostgresSaver initialized with enhanced connection pool")
                 async for event in _stream_graph_events(
                     graph, workflow_input, workflow_config, thread_id
                 ):
