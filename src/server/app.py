@@ -515,6 +515,8 @@ async def _astream_workflow_generator(
             
             # Get connection stability parameters from environment
             from src.config.loader import get_int_env
+            from psycopg.conninfo import make_conninfo
+            
             connect_timeout = get_int_env("DB_CONNECT_TIMEOUT", 60)
             keepalives_idle = get_int_env("DB_KEEPALIVES_IDLE", 30)
             keepalives_interval = get_int_env("DB_KEEPALIVES_INTERVAL", 10)
@@ -527,30 +529,40 @@ async def _astream_workflow_generator(
                 checkpoint_url_with_ssl = f"{checkpoint_url_with_ssl}{separator}sslmode=require"
                 logger.info("Added sslmode=require to PostgreSQL connection URL")
             
-            # Build connection kwargs with stability parameters
-            # Note: keepalive params go in conninfo string, not kwargs
+            # Use make_conninfo to properly handle all connection parameters
+            # This is the official psycopg way to add keepalive and timeout parameters
+            try:
+                conninfo = make_conninfo(
+                    checkpoint_url_with_ssl,
+                    keepalives=1,
+                    keepalives_idle=keepalives_idle,
+                    keepalives_interval=keepalives_interval,
+                    keepalives_count=keepalives_count,
+                    connect_timeout=connect_timeout,
+                )
+                logger.info(
+                    f"PostgreSQL connection configured with: "
+                    f"keepalives_idle={keepalives_idle}s, "
+                    f"keepalives_interval={keepalives_interval}s, "
+                    f"keepalives_count={keepalives_count}, "
+                    f"connect_timeout={connect_timeout}s"
+                )
+            except Exception as e:
+                logger.error(f"Failed to build conninfo: {e}")
+                # Fallback to URL without keepalive parameters
+                conninfo = checkpoint_url_with_ssl
+                logger.warning("Falling back to connection without keepalive parameters")
+            
+            # Build connection kwargs (only for psycopg-specific parameters)
             connection_kwargs = {
                 "autocommit": True,
                 "row_factory": "dict_row",
                 "prepare_threshold": 0,
-                "keepalives": 1,
-                "keepalives_idle": keepalives_idle,
-                "keepalives_interval": keepalives_interval,
-                "keepalives_count": keepalives_count,
-                "connect_timeout": connect_timeout,
             }
-            
-            logger.info(
-                f"PostgreSQL connection configured with: "
-                f"keepalives_idle={keepalives_idle}s, "
-                f"keepalives_interval={keepalives_interval}s, "
-                f"keepalives_count={keepalives_count}, "
-                f"connect_timeout={connect_timeout}s"
-            )
             
             # Create connection pool with enhanced stability settings
             async with AsyncConnectionPool(
-                checkpoint_url_with_ssl,
+                conninfo,
                 kwargs=connection_kwargs,
                 min_size=1,           # Minimum connections in pool
                 max_size=10,          # Maximum connections in pool
